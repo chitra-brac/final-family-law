@@ -5,6 +5,11 @@ Loads environment variables and provides configuration object
 
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from dotenv import load_dotenv
+import os
+
+# Load .env file
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -19,9 +24,9 @@ class Settings(BaseSettings):
     openai_api_key: str
     openai_model: str = "gpt-5.1-instant"  # GPT-5.1 Instant for production
 
-    # Supabase
-    supabase_url: str
-    supabase_key: str
+    # Supabase (optional - will use in-memory storage if not provided)
+    supabase_url: str = ""
+    supabase_key: str = ""
 
     # CORS
     cors_origins: list[str] = ["*"]  # In production, specify allowed origins
