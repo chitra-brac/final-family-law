@@ -13,7 +13,7 @@ LEGAL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_legal_knowledge",
-            "description": "Get legal sections, lawyer's playbook, and procedural guidance for a specific intent. Call this for any legal question about family law, violence, or rights.",
+            "description": "Get the actual law text (legal sections) for a specific intent. Call this to know what the law says about family law, violence, or rights.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -44,24 +44,47 @@ LEGAL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_procedural_guidance",
-            "description": "Get step-by-step procedural guidance for specific legal tasks like filing FIR, getting legal aid, or safety planning.",
+            "description": "Get lawyer's strategic playbook, step-by-step legal process, support organizations, and practical procedures for handling this specific legal situation. This tells you HOW to use the law and WHAT to do.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "topic": {
+                    "intent": {
                         "type": "string",
-                        "description": "The procedural topic",
+                        "description": "The legal intent category",
                         "enum": [
-                            "file_fir",
-                            "get_legal_aid",
-                            "court_procedures",
-                            "safety_planning",
-                            "evidence_collection",
-                            "protective_orders"
+                            "rape_sexual_violence",
+                            "domestic_violence_general",
+                            "dowry",
+                            "child_marriage",
+                            "custody",
+                            "maintenance",
+                            "divorce_talaq",
+                            "polygamy_second_marriage",
+                            "inheritance_succession",
+                            "marriage_registration",
+                            "dower_mehr",
+                            "parent_maintenance"
                         ]
+                    },
+                    "topics": {
+                        "type": "array",
+                        "description": "Optional: select 2-3 most relevant general procedures (filing FIR, safety planning, etc). If not specified, only intent-specific guidance is returned.",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "file_fir",
+                                "get_legal_aid",
+                                "court_procedures",
+                                "safety_planning",
+                                "evidence_collection",
+                                "protective_orders"
+                            ]
+                        },
+                        "minItems": 0,
+                        "maxItems": 3
                     }
                 },
-                "required": ["topic"]
+                "required": ["intent"]
             }
         }
     }
@@ -94,33 +117,29 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "intent": intent,
             "sections_count": sections_count,
-            "legal_sections": result.get("legal_sections", []),
-            "lawyer_playbook": result.get("lawyer_playbook", {}),
-            "procedural_guidance": result.get("procedural_guidance", {}),
-            "support_organizations": result.get("support_organizations", [])
+            "legal_sections": result.get("legal_sections", [])
         }
 
     elif tool_name == "get_procedural_guidance":
-        topic = arguments.get("topic")
-        if not topic:
-            return {"error": "Topic parameter is required"}
+        intent = arguments.get("intent")
+        topics = arguments.get("topics", [])  # Optional
 
-        result = loader.get_procedural_guidance(topic)
+        if not intent:
+            return {"error": "Intent parameter is required"}
 
-        if not result:
-            return {
-                "error": f"No procedural guidance found for topic: {topic}",
-                "available_topics": [
-                    "file_fir",
-                    "get_legal_aid",
-                    "court_procedures",
-                    "safety_planning"
-                ]
-            }
+        if topics and not isinstance(topics, list):
+            return {"error": "Topics must be an array"}
+
+        # Get procedural guidance
+        result = loader.get_procedural_guidance(intent, topics)
 
         return {
-            "topic": topic,
-            "guidance": result
+            "intent": intent,
+            "topics_requested": topics,
+            "lawyer_playbook": result.get("lawyer_playbook", {}),
+            "legal_process": result.get("legal_process", {}),
+            "support_organizations": result.get("support_organizations", []),
+            "general_procedures": result.get("general_procedures", {})
         }
 
     else:

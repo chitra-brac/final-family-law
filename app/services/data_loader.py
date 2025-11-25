@@ -104,7 +104,7 @@ class DataLoader:
     def get_legal_knowledge(self, intent: str) -> Dict[str, Any]:
         """
         Get legal knowledge for a specific intent
-        Returns sections, playbook, and procedural guidance
+        Returns ONLY legal sections (law text)
 
         Args:
             intent: Intent category (e.g., "rape_sexual_violence")
@@ -112,25 +112,19 @@ class DataLoader:
         Returns:
             Dict containing:
             - legal_sections: List of relevant legal section texts
-            - lawyer_playbook: Strategic guidance for lawyers
-            - procedural_guidance: Step-by-step procedures
-            - support_organizations: List of organizations
         """
         result = {
             "legal_sections": [],
-            "lawyer_playbook": {},
-            "procedural_guidance": {},
-            "support_organizations": [],
         }
 
-        # 1. Get section references from INTENT_MAPPINGS
+        # Get section references from INTENT_MAPPINGS
         if intent not in self.intent_mappings:
             return result  # Intent not found
 
         intent_data = self.intent_mappings[intent]
         mandatory_sections = intent_data.get("mandatory_sections", [])
 
-        # 2. Fetch full section texts
+        # Fetch full section texts from family_laws_final.json
         for section_ref in mandatory_sections:
             act_id = section_ref.get("act_id")
             section_number = section_ref.get("section_number")
@@ -147,28 +141,47 @@ class DataLoader:
                     "semantic_summary": full_section.get("semantic_summary", ""),
                 })
 
-        # 3. Get lawyer's playbook from procedural_knowledge
+        return result
+
+    def get_procedural_guidance(self, intent: str, topics: List[str] = None) -> Dict[str, Any]:
+        """
+        Get procedural guidance for an intent
+        Returns intent-specific guidance + selected general procedures
+
+        Args:
+            intent: Intent category (e.g., "rape_sexual_violence")
+            topics: Optional list of general procedure topics (e.g., ["file_fir", "safety_planning"])
+
+        Returns:
+            Dict containing:
+            - lawyer_playbook: Intent-specific strategic guidance
+            - legal_process: Intent-specific legal process
+            - support_organizations: Relevant organizations
+            - general_procedures: Selected general step-by-step procedures
+        """
+        result = {
+            "lawyer_playbook": {},
+            "legal_process": {},
+            "support_organizations": [],
+            "general_procedures": {}
+        }
+
+        # Get intent-specific procedural knowledge
         intent_specific = self.procedural_knowledge.get("intent_specific", {})
         if intent in intent_specific:
             intent_knowledge = intent_specific[intent]
             result["lawyer_playbook"] = intent_knowledge.get("lawyer_playbook", {})
-            result["procedural_guidance"] = intent_knowledge.get("legal_process", {})
+            result["legal_process"] = intent_knowledge.get("legal_process", {})
             result["support_organizations"] = intent_knowledge.get("support_organizations", [])
 
+        # Get selected general procedures if topics specified
+        if topics:
+            general_procedures = self.procedural_knowledge.get("general_procedures", {})
+            for topic in topics:
+                if topic in general_procedures:
+                    result["general_procedures"][topic] = general_procedures[topic]
+
         return result
-
-    def get_procedural_guidance(self, topic: str) -> Dict[str, Any]:
-        """
-        Get general procedural guidance
-
-        Args:
-            topic: Topic name (e.g., "file_fir", "get_legal_aid")
-
-        Returns:
-            Dict with procedural steps and guidance
-        """
-        general_procedures = self.procedural_knowledge.get("general_procedures", {})
-        return general_procedures.get(topic, {})
 
     def get_support_resources(self, resource_type: str = "all") -> Dict[str, Any]:
         """
