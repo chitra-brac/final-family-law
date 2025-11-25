@@ -82,7 +82,7 @@ class LLMService:
                 messages=messages,
                 tools=LEGAL_TOOLS,
                 tool_choice="auto",
-                temperature=0.3,  # Lower temperature for more consistent legal advice
+                # Note: gpt-5 only supports default temperature (1)
             )
 
             # Check if model wants to use tools
@@ -123,7 +123,7 @@ class LLMService:
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    temperature=0.3,
+                    # Note: gpt-5 only supports default temperature (1)
                 )
 
                 message = response.choices[0].message

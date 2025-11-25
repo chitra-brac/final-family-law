@@ -67,3 +67,11 @@ htmlcov/
 *.tmp
 temp/
 tmp/
+
+# Internal notes
+NOTES.md
+
+# Test files
+test_*.py
+test_*.log
+test_results_*.json
