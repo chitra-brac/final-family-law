@@ -32,7 +32,10 @@ LEGAL_TOOLS = [
                             "inheritance_succession",
                             "marriage_registration",
                             "dower_mehr",
-                            "parent_maintenance"
+                            "parent_maintenance",
+                            "sexual_harassment",
+                            "cybercrime",
+                            "hindu_separation"
                         ]
                     }
                 },
@@ -63,7 +66,10 @@ LEGAL_TOOLS = [
                             "inheritance_succession",
                             "marriage_registration",
                             "dower_mehr",
-                            "parent_maintenance"
+                            "parent_maintenance",
+                            "sexual_harassment",
+                            "cybercrime",
+                            "hindu_separation"
                         ]
                     },
                     "topics": {
@@ -160,7 +166,10 @@ def get_available_intents() -> List[str]:
         "inheritance_succession",
         "marriage_registration",
         "dower_mehr",
-        "parent_maintenance"
+        "parent_maintenance",
+        "sexual_harassment",
+        "cybercrime",
+        "hindu_separation"
     ]
 
 
