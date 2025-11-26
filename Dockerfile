@@ -31,7 +31,8 @@ ENV PATH=/root/.local/bin:$PATH
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    chown -R appuser:appuser /root/.local
 USER appuser
 
 # Expose port (Railway provides PORT env variable)
