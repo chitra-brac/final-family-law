@@ -71,6 +71,13 @@ tmp/
 # Internal notes
 NOTES.md
 
+# Archive folder (historical/context docs)
+_archive/
+
+# Frontend PRD (work in progress)
+FRONTEND_PRD.md
+FRONTEND_PRD_DRAFT_OLD.md
+
 # Test files
 test_*.py
 test_*.log
