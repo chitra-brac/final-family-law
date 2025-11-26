@@ -106,10 +106,13 @@ class SupabaseService:
             ]
 
         try:
-            result = self.client.rpc(
-                "get_conversation_history",
-                {"p_session_id": session_id, "p_limit": limit}
-            ).execute()
+            # Direct table query instead of RPC
+            result = self.client.table("conversations")\
+                .select("role, content")\
+                .eq("session_id", session_id)\
+                .order("created_at")\
+                .limit(limit)\
+                .execute()
 
             if result.data:
                 return [
@@ -167,21 +170,19 @@ class SupabaseService:
             return None
 
         try:
-            result = self.client.rpc(
-                "log_query_analytics",
-                {
-                    "p_session_id": session_id,
-                    "p_user_query": user_query,
-                    "p_intent_detected": intent_detected,
-                    "p_tools_used": json.dumps(tools_used or []),
-                    "p_sections_retrieved": sections_retrieved,
-                    "p_tokens_used": tokens_used,
-                    "p_response_time_ms": response_time_ms,
-                    "p_model": model,
-                    "p_success": success,
-                    "p_error_message": error_message
-                }
-            ).execute()
+            # Direct table insert instead of RPC
+            result = self.client.table("query_analytics").insert({
+                "session_id": session_id,
+                "user_query": user_query,
+                "intent_detected": intent_detected,
+                "tools_used": tools_used or [],
+                "sections_retrieved": sections_retrieved,
+                "tokens_used": tokens_used,
+                "response_time_ms": response_time_ms,
+                "model": model,
+                "success": success,
+                "error_message": error_message
+            }).execute()
 
             analytics_id = result.data if result.data else None
             logger.info("analytics_logged", session_id=session_id, analytics_id=analytics_id)

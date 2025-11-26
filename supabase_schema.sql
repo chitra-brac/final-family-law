@@ -1,168 +1,137 @@
--- Supabase Schema for Ain Bandhu Legal Chatbot
--- Run this in your Supabase SQL Editor
+-- Ain Bandhu Database Schema for Supabase (2025)
+-- Run this in: Supabase Dashboard > SQL Editor > "New query"
 
--- Table: conversations
--- Stores conversation messages for each user session
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ========================================
+-- TABLE: conversations
+-- ========================================
 CREATE TABLE IF NOT EXISTS conversations (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'tool')),
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    metadata JSONB DEFAULT '{}'::jsonb
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id text NOT NULL,
+    role text NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content text NOT NULL,
+    created_at timestamptz DEFAULT now()
 );
 
--- Index for fast session lookups
-CREATE INDEX IF NOT EXISTS idx_conversations_session_id
-    ON conversations(session_id);
+-- Indexes for fast queries
+CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at DESC);
 
--- Index for time-based queries
-CREATE INDEX IF NOT EXISTS idx_conversations_created_at
-    ON conversations(created_at DESC);
-
-
--- Table: query_analytics
--- Logs analytics data for each query
+-- ========================================
+-- TABLE: query_analytics
+-- ========================================
 CREATE TABLE IF NOT EXISTS query_analytics (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    user_query TEXT NOT NULL,
-    intent_detected TEXT,
-    tools_used JSONB DEFAULT '[]'::jsonb,
-    sections_retrieved INTEGER DEFAULT 0,
-    tokens_used INTEGER DEFAULT 0,
-    response_time_ms INTEGER,
-    model TEXT,
-    success BOOLEAN DEFAULT true,
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id text NOT NULL,
+    user_query text NOT NULL,
+    intent_detected text,
+    tools_used jsonb DEFAULT '[]'::jsonb,
+    sections_retrieved integer DEFAULT 0,
+    tokens_used integer DEFAULT 0,
+    response_time_ms integer DEFAULT 0,
+    model text,
+    success boolean DEFAULT true,
+    error_message text,
+    created_at timestamptz DEFAULT now()
 );
 
--- Index for session-based analytics
-CREATE INDEX IF NOT EXISTS idx_analytics_session_id
-    ON query_analytics(session_id);
+-- Indexes for analytics queries
+CREATE INDEX IF NOT EXISTS idx_analytics_session_id ON query_analytics(session_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_intent ON query_analytics(intent_detected);
+CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON query_analytics(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_success ON query_analytics(success);
 
--- Index for intent analysis
-CREATE INDEX IF NOT EXISTS idx_analytics_intent
-    ON query_analytics(intent_detected);
+-- ========================================
+-- TABLE: sessions (optional)
+-- ========================================
+CREATE TABLE IF NOT EXISTS sessions (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id text UNIQUE NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    created_at timestamptz DEFAULT now(),
+    last_activity timestamptz DEFAULT now()
+);
 
--- Index for time-based analytics
-CREATE INDEX IF NOT EXISTS idx_analytics_created_at
-    ON query_analytics(created_at DESC);
+-- Indexes for sessions
+CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON sessions(last_activity DESC);
 
--- Index for success/failure tracking
-CREATE INDEX IF NOT EXISTS idx_analytics_success
-    ON query_analytics(success);
+-- ========================================
+-- ROW LEVEL SECURITY (RLS)
+-- ========================================
 
+-- Enable RLS on all tables
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE query_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
--- Optional: Row Level Security (RLS) policies
--- Uncomment if you want to enable RLS
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Allow all access to conversations" ON conversations;
+DROP POLICY IF EXISTS "Allow all access to query_analytics" ON query_analytics;
+DROP POLICY IF EXISTS "Allow all access to sessions" ON sessions;
 
--- ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE query_analytics ENABLE ROW LEVEL SECURITY;
+-- Create policies for anon/authenticated access (MVP - open access)
+-- NOTE: For production, you should restrict these based on user authentication
 
--- Allow anonymous read/write for MVP (adjust for production)
--- CREATE POLICY "Allow anonymous access" ON conversations FOR ALL USING (true);
--- CREATE POLICY "Allow anonymous access" ON query_analytics FOR ALL USING (true);
+CREATE POLICY "Allow all access to conversations"
+ON conversations
+FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
 
+CREATE POLICY "Allow all access to query_analytics"
+ON query_analytics
+FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
 
--- View: Recent conversations summary
-CREATE OR REPLACE VIEW recent_conversations AS
-SELECT
-    session_id,
-    COUNT(*) as message_count,
-    MIN(created_at) as started_at,
-    MAX(created_at) as last_message_at
-FROM conversations
-GROUP BY session_id
-ORDER BY MAX(created_at) DESC
-LIMIT 100;
+CREATE POLICY "Allow all access to sessions"
+ON sessions
+FOR ALL
+TO anon, authenticated
+USING (true)
+WITH CHECK (true);
 
+-- ========================================
+-- HELPER FUNCTIONS
+-- ========================================
 
--- View: Intent analytics
-CREATE OR REPLACE VIEW intent_analytics AS
-SELECT
-    intent_detected,
-    COUNT(*) as query_count,
-    AVG(tokens_used) as avg_tokens,
-    AVG(response_time_ms) as avg_response_time_ms,
-    AVG(sections_retrieved) as avg_sections,
-    SUM(CASE WHEN success THEN 1 ELSE 0 END)::FLOAT / COUNT(*) * 100 as success_rate
-FROM query_analytics
-WHERE intent_detected IS NOT NULL
-GROUP BY intent_detected
-ORDER BY query_count DESC;
-
-
--- Function: Get conversation history
-CREATE OR REPLACE FUNCTION get_conversation_history(p_session_id TEXT, p_limit INTEGER DEFAULT 50)
-RETURNS TABLE(role TEXT, content TEXT, created_at TIMESTAMP WITH TIME ZONE) AS $$
+-- Function to get intent analytics
+CREATE OR REPLACE FUNCTION get_intent_analytics()
+RETURNS TABLE (
+    intent text,
+    total_queries bigint,
+    avg_response_time numeric,
+    avg_tokens numeric,
+    success_rate numeric
+) 
+LANGUAGE plpgsql
+AS $$
 BEGIN
     RETURN QUERY
     SELECT
-        c.role,
-        c.content,
-        c.created_at
-    FROM conversations c
-    WHERE c.session_id = p_session_id
-    ORDER BY c.created_at ASC
-    LIMIT p_limit;
+        intent_detected::text,
+        COUNT(*)::bigint as total_queries,
+        ROUND(AVG(response_time_ms)::numeric, 2) as avg_response_time,
+        ROUND(AVG(tokens_used)::numeric, 2) as avg_tokens,
+        ROUND((COUNT(*) FILTER (WHERE success = true)::numeric / COUNT(*)::numeric * 100), 2) as success_rate
+    FROM query_analytics
+    WHERE intent_detected IS NOT NULL
+    GROUP BY intent_detected
+    ORDER BY total_queries DESC;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
+-- ========================================
+-- VERIFICATION
+-- ========================================
 
--- Function: Log query analytics
-CREATE OR REPLACE FUNCTION log_query_analytics(
-    p_session_id TEXT,
-    p_user_query TEXT,
-    p_intent_detected TEXT,
-    p_tools_used JSONB,
-    p_sections_retrieved INTEGER,
-    p_tokens_used INTEGER,
-    p_response_time_ms INTEGER,
-    p_model TEXT,
-    p_success BOOLEAN,
-    p_error_message TEXT DEFAULT NULL
-) RETURNS UUID AS $$
-DECLARE
-    v_id UUID;
-BEGIN
-    INSERT INTO query_analytics (
-        session_id,
-        user_query,
-        intent_detected,
-        tools_used,
-        sections_retrieved,
-        tokens_used,
-        response_time_ms,
-        model,
-        success,
-        error_message
-    ) VALUES (
-        p_session_id,
-        p_user_query,
-        p_intent_detected,
-        p_tools_used,
-        p_sections_retrieved,
-        p_tokens_used,
-        p_response_time_ms,
-        p_model,
-        p_success,
-        p_error_message
-    ) RETURNING id INTO v_id;
-
-    RETURN v_id;
-END;
-$$ LANGUAGE plpgsql;
-
-
--- Sample queries for testing:
-
--- Get all conversations for a session
--- SELECT * FROM get_conversation_history('test-session-123');
-
--- Get intent analytics
--- SELECT * FROM intent_analytics;
-
--- Get recent conversations
--- SELECT * FROM recent_conversations;
+-- Show created tables
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('conversations', 'query_analytics', 'sessions');
