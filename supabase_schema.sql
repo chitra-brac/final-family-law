@@ -119,17 +119,50 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_profile RECORD;
+    v_id uuid;
+    v_profile_id text;
+    v_context jsonb;
+    v_created timestamptz;
+    v_active timestamptz;
 BEGIN
-    SELECT * INTO v_profile FROM user_profiles WHERE user_profiles.profile_id = p_profile_id;
+    -- Try to find existing profile
+    SELECT
+        user_profiles.id,
+        user_profiles.profile_id,
+        user_profiles.inferred_context,
+        user_profiles.created_at,
+        user_profiles.last_active
+    INTO v_id, v_profile_id, v_context, v_created, v_active
+    FROM user_profiles
+    WHERE user_profiles.profile_id = p_profile_id;
 
-    IF v_profile IS NULL THEN
-        INSERT INTO user_profiles (profile_id) VALUES (p_profile_id) RETURNING * INTO v_profile;
+    -- If not found, create new profile
+    IF v_id IS NULL THEN
+        INSERT INTO user_profiles (profile_id)
+        VALUES (p_profile_id)
+        RETURNING
+            user_profiles.id,
+            user_profiles.profile_id,
+            user_profiles.inferred_context,
+            user_profiles.created_at,
+            user_profiles.last_active
+        INTO v_id, v_profile_id, v_context, v_created, v_active;
     ELSE
-        UPDATE user_profiles SET last_active = now() WHERE user_profiles.profile_id = p_profile_id RETURNING * INTO v_profile;
+        -- Update last_active
+        UPDATE user_profiles
+        SET last_active = now()
+        WHERE user_profiles.profile_id = p_profile_id
+        RETURNING
+            user_profiles.id,
+            user_profiles.profile_id,
+            user_profiles.inferred_context,
+            user_profiles.created_at,
+            user_profiles.last_active
+        INTO v_id, v_profile_id, v_context, v_created, v_active;
     END IF;
 
-    RETURN QUERY SELECT v_profile.*;
+    -- Return the profile
+    RETURN QUERY SELECT v_id, v_profile_id, v_context, v_created, v_active;
 END;
 $$;
 
