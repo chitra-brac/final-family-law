@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies globally
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage
 FROM python:3.11-slim
@@ -20,19 +20,16 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+# Copy Python dependencies from builder (installed globally in /usr/local)
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY . .
 
-# Update PATH to include local Python packages
-ENV PATH=/root/.local/bin:$PATH
-
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app && \
-    chown -R appuser:appuser /root/.local
+    chown -R appuser:appuser /app
 USER appuser
 
 # Expose port (Railway provides PORT env variable)
