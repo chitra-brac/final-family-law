@@ -1,106 +1,157 @@
--- Ain Bandhu Database Schema for Supabase (2025)
+-- Ain Bandhu Database Schema - Profile-Based Architecture
 -- Run this in: Supabase Dashboard > SQL Editor > "New query"
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ========================================
--- TABLE: conversations
+-- TABLE: user_profiles
+-- Anonymous but persistent user tracking
 -- ========================================
-CREATE TABLE IF NOT EXISTS conversations (
+DROP TABLE IF EXISTS user_profiles CASCADE;
+CREATE TABLE user_profiles (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id text NOT NULL,
-    role text NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    profile_id text UNIQUE NOT NULL,
+
+    -- Gradually collected context
+    inferred_context jsonb DEFAULT '{}'::jsonb,
+
+    -- Timestamps
+    created_at timestamptz DEFAULT now(),
+    last_active timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_user_profiles_profile_id ON user_profiles(profile_id);
+CREATE INDEX idx_user_profiles_last_active ON user_profiles(last_active DESC);
+
+-- ========================================
+-- TABLE: conversations
+-- All messages for a profile
+-- ========================================
+DROP TABLE IF EXISTS conversations CASCADE;
+CREATE TABLE conversations (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    profile_id text NOT NULL REFERENCES user_profiles(profile_id) ON DELETE CASCADE,
+
+    -- Message data
+    role text NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'tool')),
     content text NOT NULL,
+
+    -- Metadata (optional)
+    metadata jsonb DEFAULT '{}'::jsonb,
+
+    -- Timestamp
     created_at timestamptz DEFAULT now()
 );
 
--- Indexes for fast queries
-CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id);
-CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at DESC);
+CREATE INDEX idx_conversations_profile_id ON conversations(profile_id);
+CREATE INDEX idx_conversations_profile_created ON conversations(profile_id, created_at ASC);
 
 -- ========================================
 -- TABLE: query_analytics
+-- Analytics for each query
 -- ========================================
-CREATE TABLE IF NOT EXISTS query_analytics (
+DROP TABLE IF EXISTS query_analytics CASCADE;
+CREATE TABLE query_analytics (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id text NOT NULL,
+    profile_id text NOT NULL,
+
+    -- Query data
     user_query text NOT NULL,
     intent_detected text,
+
+    -- Tool usage
     tools_used jsonb DEFAULT '[]'::jsonb,
     sections_retrieved integer DEFAULT 0,
+
+    -- Performance metrics
     tokens_used integer DEFAULT 0,
     response_time_ms integer DEFAULT 0,
     model text,
+
+    -- Success tracking
     success boolean DEFAULT true,
     error_message text,
+
+    -- Timestamp
     created_at timestamptz DEFAULT now()
 );
 
--- Indexes for analytics queries
-CREATE INDEX IF NOT EXISTS idx_analytics_session_id ON query_analytics(session_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_intent ON query_analytics(intent_detected);
-CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON query_analytics(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_analytics_success ON query_analytics(success);
-
--- ========================================
--- TABLE: sessions (optional)
--- ========================================
-CREATE TABLE IF NOT EXISTS sessions (
-    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id text UNIQUE NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb,
-    created_at timestamptz DEFAULT now(),
-    last_activity timestamptz DEFAULT now()
-);
-
--- Indexes for sessions
-CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON sessions(last_activity DESC);
+CREATE INDEX idx_analytics_profile_id ON query_analytics(profile_id);
+CREATE INDEX idx_analytics_intent ON query_analytics(intent_detected);
+CREATE INDEX idx_analytics_created_at ON query_analytics(created_at DESC);
 
 -- ========================================
 -- ROW LEVEL SECURITY (RLS)
 -- ========================================
 
--- Enable RLS on all tables
+-- Enable RLS
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE query_analytics ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if any
-DROP POLICY IF EXISTS "Allow all access to conversations" ON conversations;
-DROP POLICY IF EXISTS "Allow all access to query_analytics" ON query_analytics;
-DROP POLICY IF EXISTS "Allow all access to sessions" ON sessions;
-
--- Create policies for anon/authenticated access (MVP - open access)
--- NOTE: For production, you should restrict these based on user authentication
+-- Allow all access for MVP (open access)
+CREATE POLICY "Allow all access to user_profiles"
+ON user_profiles FOR ALL TO anon, authenticated
+USING (true) WITH CHECK (true);
 
 CREATE POLICY "Allow all access to conversations"
-ON conversations
-FOR ALL
-TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+ON conversations FOR ALL TO anon, authenticated
+USING (true) WITH CHECK (true);
 
 CREATE POLICY "Allow all access to query_analytics"
-ON query_analytics
-FOR ALL
-TO anon, authenticated
-USING (true)
-WITH CHECK (true);
-
-CREATE POLICY "Allow all access to sessions"
-ON sessions
-FOR ALL
-TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+ON query_analytics FOR ALL TO anon, authenticated
+USING (true) WITH CHECK (true);
 
 -- ========================================
 -- HELPER FUNCTIONS
 -- ========================================
 
--- Function to get intent analytics
+-- Get or create user profile
+CREATE OR REPLACE FUNCTION get_or_create_profile(p_profile_id text)
+RETURNS TABLE (
+    id uuid,
+    profile_id text,
+    inferred_context jsonb,
+    created_at timestamptz,
+    last_active timestamptz
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_profile RECORD;
+BEGIN
+    SELECT * INTO v_profile FROM user_profiles WHERE user_profiles.profile_id = p_profile_id;
+
+    IF v_profile IS NULL THEN
+        INSERT INTO user_profiles (profile_id) VALUES (p_profile_id) RETURNING * INTO v_profile;
+    ELSE
+        UPDATE user_profiles SET last_active = now() WHERE user_profiles.profile_id = p_profile_id RETURNING * INTO v_profile;
+    END IF;
+
+    RETURN QUERY SELECT v_profile.*;
+END;
+$$;
+
+-- Get conversation history
+CREATE OR REPLACE FUNCTION get_conversation_history(
+    p_profile_id text,
+    p_limit integer DEFAULT 50
+)
+RETURNS TABLE (role text, content text, created_at timestamptz)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT c.role, c.content, c.created_at
+    FROM conversations c
+    WHERE c.profile_id = p_profile_id
+    ORDER BY c.created_at ASC
+    LIMIT p_limit;
+END;
+$$;
+
+-- Get intent analytics
 CREATE OR REPLACE FUNCTION get_intent_analytics()
 RETURNS TABLE (
     intent text,
@@ -108,30 +159,20 @@ RETURNS TABLE (
     avg_response_time numeric,
     avg_tokens numeric,
     success_rate numeric
-) 
+)
 LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
     SELECT
         intent_detected::text,
-        COUNT(*)::bigint as total_queries,
-        ROUND(AVG(response_time_ms)::numeric, 2) as avg_response_time,
-        ROUND(AVG(tokens_used)::numeric, 2) as avg_tokens,
-        ROUND((COUNT(*) FILTER (WHERE success = true)::numeric / COUNT(*)::numeric * 100), 2) as success_rate
+        COUNT(*)::bigint,
+        ROUND(AVG(response_time_ms)::numeric, 2),
+        ROUND(AVG(tokens_used)::numeric, 2),
+        ROUND((COUNT(*) FILTER (WHERE success = true)::numeric / COUNT(*)::numeric * 100), 2)
     FROM query_analytics
     WHERE intent_detected IS NOT NULL
     GROUP BY intent_detected
-    ORDER BY total_queries DESC;
+    ORDER BY COUNT(*) DESC;
 END;
 $$;
-
--- ========================================
--- VERIFICATION
--- ========================================
-
--- Show created tables
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_schema = 'public' 
-AND table_name IN ('conversations', 'query_analytics', 'sessions');

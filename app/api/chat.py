@@ -69,16 +69,50 @@ async def chat(request: ChatRequest):
             content=request.message
         )
 
-        # Get conversation history
-        conversation_history = supabase_service.get_conversation_history(
+        # Get conversation history (up to 50 messages)
+        all_messages = supabase_service.get_conversation_history(
             session_id=session_id,
-            limit=10  # Last 10 messages for context
+            limit=50
         )
+
+        # Exclude the message we just added
+        history = all_messages[:-1] if all_messages else []
+
+        logger.info(
+            "context_check",
+            session_id=session_id,
+            all_messages_count=len(all_messages),
+            history_count=len(history)
+        )
+
+        # Smart context windowing: summarize old messages if > 10
+        if len(history) > 10:
+            # Split into old (to summarize) and recent (keep verbatim)
+            old_messages = history[:-10]
+            recent_messages = history[-10:]
+
+            # Generate summary of old messages
+            summary = llm_service.summarize_conversation(old_messages)
+
+            # Prepare context: summary as system message + recent messages
+            conversation_history = [
+                {"role": "system", "content": f"পূর্ববর্তী কথোপকথনের সংক্ষিপ্তসার:\n{summary}"}
+            ] + recent_messages
+
+            logger.info(
+                "context_summarized",
+                old_messages_count=len(old_messages),
+                recent_messages_count=len(recent_messages),
+                summary_length=len(summary)
+            )
+        else:
+            # Short conversation, use all messages as-is
+            conversation_history = history
 
         # Call LLM with tools
         result = llm_service.chat(
             user_message=request.message,
-            conversation_history=conversation_history[:-1]  # Exclude the message we just added
+            conversation_history=conversation_history
         )
 
         # Calculate response time

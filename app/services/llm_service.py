@@ -213,6 +213,67 @@ class LLMService:
         else:
             yield result["response"]
 
+    def summarize_conversation(
+        self,
+        messages: List[Dict[str, str]]
+    ) -> str:
+        """
+        Summarize a conversation history into a condensed context summary
+
+        Args:
+            messages: List of messages to summarize (role, content pairs)
+
+        Returns:
+            A concise summary string (150-250 words) in Bengali
+        """
+        if not messages:
+            return ""
+
+        # Build summary prompt
+        summary_prompt = """তুমি একটি আইনি পরামর্শ কথোপকথন সংক্ষিপ্ত করবে। নিচের কথোপকথন পড়ে একটি সংক্ষিপ্ত বিবরণ তৈরি করো।
+
+অবশ্যই অন্তর্ভুক্ত করতে হবে:
+১. ব্যবহারকারীর আইনি সমস্যা কী (যেমন: গৃহ সহিংসতা, তালাক, ভরণপোষণ)
+২. মূল ঘটনা ও তথ্য (কী হয়েছে, কখন হয়েছে, কে জড়িত)
+৩. এখন পর্যন্ত কী পরামর্শ দেওয়া হয়েছে
+৪. ব্যবহারকারীর বর্তমান পরিস্থিতি (নিরাপদ কিনা, কী পদক্ষেপ নিয়েছে)
+
+সংক্ষিপ্ত রাখো (১৫০-২৫০ শব্দ)। বাংলায় লেখো।"""
+
+        # Convert messages to readable format
+        conversation_text = ""
+        for msg in messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+
+            if role == "user":
+                conversation_text += f"\n\nব্যবহারকারী: {content}"
+            elif role == "assistant":
+                conversation_text += f"\n\nআইন বন্ধু: {content}"
+            # Skip system and tool messages from summary
+
+        try:
+            # Call OpenAI to generate summary
+            response = self.client.chat.completions.create(
+                model=self.model,  # Use same model (gpt-5-nano)
+                messages=[
+                    {"role": "system", "content": summary_prompt},
+                    {"role": "user", "content": f"কথোপকথন:\n{conversation_text}"}
+                ],
+                reasoning_effort="low",  # Fast, simple task
+                max_tokens=500  # Limit summary length
+            )
+
+            summary = response.choices[0].message.content
+            logger.info("conversation_summarized", original_messages=len(messages), summary_length=len(summary))
+
+            return summary
+
+        except Exception as e:
+            logger.error("summarization_error", error=str(e))
+            # Fallback: return simple concatenation if summarization fails
+            return f"পূর্ববর্তী কথোপকথন সংক্ষেপ: {len(messages)} টি বার্তা।"
+
 
 # Global LLM service instance
 _llm_service: Optional[LLMService] = None

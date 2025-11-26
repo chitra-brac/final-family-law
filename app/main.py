@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uuid
 from datetime import datetime
+import structlog
 
 from app.config import get_settings
 from app.models import (
@@ -18,8 +19,9 @@ from app.models import (
     HealthResponse,
 )
 
-# Initialize settings
+# Initialize settings and logger
 settings = get_settings()
+logger = structlog.get_logger()
 
 # Create FastAPI app
 app = FastAPI(
@@ -113,18 +115,19 @@ async def chat(request: ChatRequest):
     Processes user message and returns AI response
 
     Flow:
-    1. Get conversation history from Supabase
-    2. Send message to OpenAI with tools
-    3. Execute tools if called
-    4. Store conversation in Supabase
-    5. Return response
+    1. Get conversation history from Supabase (up to 50 messages)
+    2. Smart context windowing: if > 10 messages, summarize old ones
+    3. Send message to OpenAI with tools
+    4. Execute tools if called
+    5. Store conversation in Supabase
+    6. Return response
     """
     import time
     from app.services.llm_service import get_llm_service
     from app.services.supabase_service import get_supabase_service
 
     start_time = time.time()
-    session_id = request.session_id
+    profile_id = request.session_id  # Using session_id as profile_id for now (frontend compatibility)
 
     try:
         llm_service = get_llm_service()
@@ -132,21 +135,49 @@ async def chat(request: ChatRequest):
 
         # Store user message
         supabase_service.store_message(
-            session_id=session_id,
+            profile_id=profile_id,
             role="user",
             content=request.message
         )
 
-        # Get conversation history
-        conversation_history = supabase_service.get_conversation_history(
-            session_id=session_id,
-            limit=10
+        # Get conversation history (up to 50 messages)
+        all_messages = supabase_service.get_conversation_history(
+            profile_id=profile_id,
+            limit=50
         )
+
+        # Exclude the message we just added
+        history = all_messages[:-1] if all_messages else []
+
+        # Smart context windowing: summarize old messages if > 10
+        if len(history) > 10:
+            # Split into old (to summarize) and recent (keep verbatim)
+            old_messages = history[:-10]
+            recent_messages = history[-10:]
+
+            # Generate summary of old messages
+            summary = llm_service.summarize_conversation(old_messages)
+
+            # Prepare context: summary as system message + recent messages
+            conversation_history = [
+                {"role": "system", "content": f"পূর্ববর্তী কথোপকথনের সংক্ষিপ্তসার:\n{summary}"}
+            ] + recent_messages
+
+            logger.info(
+                "context_summarized",
+                profile_id=profile_id,
+                old_messages_count=len(old_messages),
+                recent_messages_count=len(recent_messages),
+                summary_length=len(summary)
+            )
+        else:
+            # Short conversation, use all messages as-is
+            conversation_history = history
 
         # Call LLM with tools
         result = llm_service.chat(
             user_message=request.message,
-            conversation_history=conversation_history[:-1]  # Exclude the message we just added
+            conversation_history=conversation_history
         )
 
         if not result["success"]:
@@ -157,7 +188,7 @@ async def chat(request: ChatRequest):
 
         # Store assistant response
         supabase_service.store_message(
-            session_id=session_id,
+            profile_id=profile_id,
             role="assistant",
             content=result["response"]
         )
@@ -180,7 +211,7 @@ async def chat(request: ChatRequest):
         # Log analytics
         response_time_ms = int((time.time() - start_time) * 1000)
         supabase_service.log_analytics(
-            session_id=session_id,
+            profile_id=profile_id,
             user_query=request.message,
             intent_detected=intent_detected,
             tools_used=result["tools_used"],
@@ -192,7 +223,7 @@ async def chat(request: ChatRequest):
         )
 
         return ChatResponse(
-            session_id=session_id,
+            session_id=profile_id,  # Return as session_id for frontend compatibility
             response=result["response"],
             intent=intent_detected,
             urgency=None,  # Can add urgency detection later
@@ -205,7 +236,7 @@ async def chat(request: ChatRequest):
         # Log failed analytics
         try:
             supabase_service.log_analytics(
-                session_id=session_id,
+                profile_id=profile_id,
                 user_query=request.message,
                 success=False,
                 error_message=str(e)
