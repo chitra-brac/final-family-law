@@ -1,0 +1,298 @@
+{
+  "timestamp": "2025-11-27T12:20:04.005813",
+  "summary": {
+    "intents_tested": 15,
+    "total_queries": 0,
+    "avg_quality": 0,
+    "avg_response_time": 0,
+    "total_tokens": 0,
+    "success_rate": 0.0
+  },
+  "results": [
+    {
+      "intent": "domestic_violence",
+      "scenario": "Woman being beaten by husband",
+      "conversation": [
+        {
+          "question": "আমার স্বামী আমাকে মারধর করে। আমি কী করতে পারি?",
+          "error": true,
+          "response_time": 10.45359182357788
+        },
+        {
+          "question": "FIR করতে কত টাকা লাগে?",
+          "error": true,
+          "response_time": 16.44395399093628
+        },
+        {
+          "question": "আমি কি সরাসরি আদালতে যেতে পারি?",
+          "error": true,
+          "response_time": 12.339847087860107
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "rape",
+      "scenario": "Rape victim seeking help",
+      "conversation": [
+        {
+          "question": "আমি ধর্ষণের শিকার হয়েছি। কোথায় যাব?",
+          "error": true,
+          "response_time": 37.01193618774414
+        },
+        {
+          "question": "মেডিকেল পরীক্ষা কি বাধ্যতামূলক?",
+          "error": true,
+          "response_time": 43.96651911735535
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "sexual_harassment",
+      "scenario": "Workplace harassment",
+      "conversation": [
+        {
+          "question": "অফিসে আমার বসের যৌন হয়রানির শিকার হচ্ছি। কী করব?",
+          "error": true,
+          "response_time": 13.79947280883789
+        },
+        {
+          "question": "কোম্পানির কাছে কমপ্লেইন করলে কি হবে?",
+          "error": true,
+          "response_time": 14.263848781585693
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "dowry",
+      "scenario": "Dowry demand and harassment",
+      "conversation": [
+        {
+          "question": "শ্বশুরবাড়ি যৌতুক চাচ্ছে। আইন কি বলে?",
+          "error": true,
+          "response_time": 30.084046840667725
+        },
+        {
+          "question": "যৌতুকের জন্য মারধর হলে কী করব?",
+          "error": true,
+          "response_time": 23.29481816291809
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "child_marriage",
+      "scenario": "Underage marriage",
+      "conversation": [
+        {
+          "question": "আমার বোনের বয়স ১৬ কিন্তু বিয়ে দিতে চাচ্ছে। এটা কি আইনসম্মত?",
+          "error": true,
+          "response_time": 28.061130046844482
+        },
+        {
+          "question": "বাল্যবিবাহ বন্ধ করার উপায় কী?",
+          "error": true,
+          "response_time": 18.98560118675232
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "divorce",
+      "scenario": "Divorce process",
+      "conversation": [
+        {
+          "question": "আমি তালাক চাই। কীভাবে তালাক নেব?",
+          "error": true,
+          "response_time": 13.337342977523804
+        },
+        {
+          "question": "খোলা কী? কত টাকা লাগে?",
+          "error": true,
+          "response_time": 13.800980806350708
+        },
+        {
+          "question": "তালাকের সময় ভরণপোষণ পাব?",
+          "error": true,
+          "response_time": 18.68953514099121
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "custody",
+      "scenario": "Custody after divorce",
+      "conversation": [
+        {
+          "question": "তালাকের পর সন্তানের হেফাজত কে পাবে?",
+          "error": true,
+          "response_time": 24.953686952590942
+        },
+        {
+          "question": "ছেলে সন্তানের হেফাজত কত বছর পর্যন্ত মায়ের?",
+          "error": true,
+          "response_time": 26.283496856689453
+        },
+        {
+          "question": "আদালতে হেফাজতের মামলা করতে কত সময় লাগে?",
+          "error": true,
+          "response_time": 21.28038501739502
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "maintenance",
+      "scenario": "Wife's maintenance",
+      "conversation": [
+        {
+          "question": "স্বামী ভরণপোষণ দিচ্ছে না। আমি কী করতে পারি?",
+          "error": true,
+          "response_time": 9.438591003417969
+        },
+        {
+          "question": "ভরণপোষণের মামলা কোথায় করব?",
+          "error": true,
+          "response_time": 20.78629207611084
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "parent_maintenance",
+      "scenario": "Elderly parent maintenance",
+      "conversation": [
+        {
+          "question": "আমার ছেলে আমাকে দেখাশোনা করছে না। কী করব?",
+          "error": true,
+          "response_time": 26.88509488105774
+        },
+        {
+          "question": "পিতামাতার ভরণপোষণ পাওয়ার আইন আছে?",
+          "error": true,
+          "response_time": 10.516219139099121
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "polygamy",
+      "scenario": "Second marriage without permission",
+      "conversation": [
+        {
+          "question": "স্বামী দ্বিতীয় বিয়ে করেছে। আমার কি করার আছে?",
+          "error": true,
+          "response_time": 24.788156032562256
+        },
+        {
+          "question": "দ্বিতীয় বিয়ের জন্য অনুমতি নেওয়া লাগে?",
+          "error": true,
+          "response_time": 27.873063802719116
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "inheritance",
+      "scenario": "Women's inheritance rights",
+      "conversation": [
+        {
+          "question": "বাবার সম্পত্তিতে মেয়ের কতটুকু অধিকার?",
+          "error": true,
+          "response_time": 16.87572717666626
+        },
+        {
+          "question": "ভাইরা আমাকে সম্পত্তি দিচ্ছে না। কী করব?",
+          "error": true,
+          "response_time": 15.26768708229065
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "marriage_registration",
+      "scenario": "Marriage registration",
+      "conversation": [
+        {
+          "question": "বিয়ে রেজিস্ট্রি করতে হবে কেন?",
+          "error": true,
+          "response_time": 19.929150104522705
+        },
+        {
+          "question": "কাবিননামা হারিয়ে গেছে। কী করব?",
+          "error": true,
+          "response_time": 24.968617916107178
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "dower",
+      "scenario": "Claiming dower",
+      "conversation": [
+        {
+          "question": "দেনমোহর কী? আমি কি চাইলেই পাব?",
+          "error": true,
+          "response_time": 20.413222789764404
+        },
+        {
+          "question": "তালাকের পর দেনমোহর পাওয়ার নিয়ম কী?",
+          "error": true,
+          "response_time": 23.40580415725708
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "cybercrime",
+      "scenario": "Revenge porn and online harassment",
+      "conversation": [
+        {
+          "question": "আমার ছবি মরফ করে ফেসবুকে ছড়িয়ে দিয়েছে। কী করব?",
+          "error": true,
+          "response_time": 20.70131492614746
+        },
+        {
+          "question": "সাইবার ক্রাইমের অভিযোগ কোথায় করব?",
+          "error": true,
+          "response_time": 32.21074080467224
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    },
+    {
+      "intent": "hindu_separation",
+      "scenario": "Hindu marriage separation",
+      "conversation": [
+        {
+          "question": "হিন্দু আইনে কি তালাক আছে?",
+          "error": true,
+          "response_time": 22.10153293609619
+        },
+        {
+          "question": "হিন্দু নারী বিবাহ বিচ্ছেদ চাইলে কী করবে?",
+          "error": true,
+          "response_time": 18.687201976776123
+        }
+      ],
+      "avg_quality": 0,
+      "avg_response_time": 0
+    }
+  ]
+}

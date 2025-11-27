@@ -5,6 +5,7 @@ Provides access to legal knowledge and procedural guidance
 
 from typing import Dict, Any, List
 from app.services.data_loader import get_data_loader
+from app.services.semantic_search import get_search_service
 
 
 # OpenAI function definitions
@@ -93,6 +94,23 @@ LEGAL_TOOLS = [
                 "required": ["intent"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_legal_sections",
+            "description": "Search all 1,512 legal sections across 58 Bangladesh acts to find relevant law for ANY family law question. Use this when the question doesn't fit predefined intents or when you need broader legal context. Returns 3-5 most relevant sections.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The user's question or legal issue in Bengali (e.g., 'কর্মক্ষেত্রে যৌন হয়রানি', 'সাইবার ক্রাইম')"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
     }
 ]
 
@@ -146,6 +164,36 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             "legal_process": result.get("legal_process", {}),
             "support_organizations": result.get("support_organizations", []),
             "general_procedures": result.get("general_procedures", {})
+        }
+
+    elif tool_name == "search_legal_sections":
+        query = arguments.get("query")
+        if not query:
+            return {"error": "Query parameter is required"}
+
+        # Use semantic search service
+        search_service = get_search_service()
+
+        # Step 1: Find relevant acts
+        act_ids = search_service.search_relevant_acts(query, top_k=2)
+
+        if not act_ids:
+            return {"error": "No relevant acts found", "sections": []}
+
+        # Step 2: Get sections from each act
+        all_sections = []
+        for act_id in act_ids:
+            sections = search_service.get_sections_from_act(act_id, query, top_k=3)
+            all_sections.extend(sections)
+
+        # Limit to top 5 total sections
+        all_sections = all_sections[:5]
+
+        return {
+            "query": query,
+            "acts_searched": act_ids,
+            "sections_count": len(all_sections),
+            "legal_sections": all_sections
         }
 
     else:
