@@ -81,7 +81,6 @@ Pick the {top_k} most relevant acts. Be precise."""
         self,
         act_id: str,
         user_query: str,
-        top_k: int = 4
     ) -> List[Dict[str, Any]]:
         """
         Find most relevant sections from a specific act
@@ -89,7 +88,6 @@ Pick the {top_k} most relevant acts. Be precise."""
         Args:
             act_id: The act ID to search within
             user_query: The user's question in Bengali
-            top_k: Number of sections to return (default 4)
 
         Returns:
             List of full section objects
@@ -110,15 +108,15 @@ Pick the {top_k} most relevant acts. Be precise."""
             })
 
         # Prompt for GPT-4o-mini
-        prompt = f"""You are a legal research assistant. Given a user's question and a list of sections from a Bangladesh law, identify the {top_k} most relevant sections.
+        prompt = f"""You are a legal research assistant. Given a user's question and a list of sections from a Bangladesh law, identify all sections that directly address the user's question.
 
 User Question: {user_query}
 
 Sections:
 {json.dumps(section_list, ensure_ascii=False, indent=2)}
 
-Return a JSON object with a "section_numbers" array (as strings), like: {{"section_numbers": ["৩", "১৪", "২০"]}}
-Pick the {top_k} most relevant sections. Be precise."""
+Return a JSON object with a "section_numbers" array (as strings), like: {{"section_numbers": ["৩", "১৪", "২০"]}}. Return as many section numbers as apply.
+Be precise."""
 
         try:
             response = self.client.chat.completions.create(
@@ -138,7 +136,7 @@ Pick the {top_k} most relevant sections. Be precise."""
 
             # Fetch full section data
             full_sections = []
-            for section_num in section_numbers[:top_k]:
+            for section_num in section_numbers:
                 if section_num in act_sections:
                     section_data = act_sections[section_num]
                     full_sections.append({

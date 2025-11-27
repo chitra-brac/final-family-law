@@ -183,11 +183,8 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         # Step 2: Get sections from each act
         all_sections = []
         for act_id in act_ids:
-            sections = search_service.get_sections_from_act(act_id, query, top_k=3)
+            sections = search_service.get_sections_from_act(act_id, query)
             all_sections.extend(sections)
-
-        # Limit to top 5 total sections
-        all_sections = all_sections[:5]
 
         return {
             "query": query,
