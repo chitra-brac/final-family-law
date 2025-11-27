@@ -199,9 +199,8 @@ class LLMService:
                 messages=messages,
                 tools=LEGAL_TOOLS,
                 tool_choice="auto",
-                reasoning_effort="low",  # Balanced: fast but actually calls tools
+                reasoning_effort="medium",  # GPT-5.1-chat-latest supports 'medium'
                 parallel_tool_calls=True,  # Call both tools in parallel
-                # Note: gpt-5 only supports default temperature (1)
             )
 
             # Check if model wants to use tools
@@ -242,8 +241,7 @@ class LLMService:
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    reasoning_effort="low",  # Fast response generation
-                    # Note: gpt-5 only supports default temperature (1)
+                    reasoning_effort="medium",  # GPT-5.1-chat-latest supports 'medium'
                 )
 
                 message = response.choices[0].message
@@ -350,13 +348,12 @@ class LLMService:
         try:
             # Call OpenAI to generate summary
             response = self.client.chat.completions.create(
-                model=self.model,  # Use same model (gpt-5-nano)
+                model=self.model,
                 messages=[
                     {"role": "system", "content": summary_prompt},
                     {"role": "user", "content": f"কথোপকথন:\n{conversation_text}"}
                 ],
-                reasoning_effort="low",  # Fast, simple task
-                max_tokens=500  # Limit summary length
+                reasoning_effort="medium",  # GPT-5.1-chat-latest supports 'medium'
             )
 
             summary = response.choices[0].message.content
