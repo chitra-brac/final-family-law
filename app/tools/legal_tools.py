@@ -48,7 +48,7 @@ LEGAL_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_procedural_guidance",
-            "description": "Get lawyer's strategic playbook, step-by-step legal process, support organizations, and practical procedures for handling this specific legal situation. This tells you HOW to use the law and WHAT to do.",
+            "description": "Get intent-specific procedural guidance (definitions, key laws, step-by-step actions, punishments, timelines) and general procedures for handling a legal situation. This tells you HOW to use the law and WHAT to do.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -185,19 +185,13 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             # Step 1: Find relevant acts via GPT-4o-mini
             act_ids = search_service.search_relevant_acts(query, top_k=2)
 
-        # Handle error from search_relevant_acts
-        if isinstance(act_ids, dict):
-            return act_ids  # Pass through error dict
-
         if not act_ids:
-            return {"error": "No relevant acts found", "sections": []}
+            return {"error": "No relevant acts found", "legal_sections": []}
 
         # Step 2: Get sections from each act
         all_sections = []
         for act_id in act_ids:
             sections = search_service.get_sections_from_act(act_id, query)
-            if isinstance(sections, dict):
-                continue  # Skip acts that errored, try others
             all_sections.extend(sections)
 
         return {

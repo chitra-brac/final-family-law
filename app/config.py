@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str
     openai_model: str = "gpt-5.1-chat-latest"  # GPT-5.1 Chat for production
+    search_model: str = "gpt-4o-mini"  # Model for semantic search (cheap, fast)
 
     # Supabase (optional - will use in-memory storage if not provided)
     supabase_url: str = ""

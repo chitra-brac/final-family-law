@@ -74,7 +74,7 @@ class DataLoader:
 
     def _load_intent_mappings(self):
         """Load INTENT_MAPPINGS.json"""
-        file_path = self.data_dir / "INTENT_MAPPINGS.json"
+        file_path = self.data_dir / "intent_mappings.json"
 
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -122,6 +122,11 @@ class DataLoader:
             return result  # Intent not found
 
         intent_data = self.intent_mappings[intent]
+
+        note = intent_data.get("note")
+        if note:
+            result["note"] = note
+
         mandatory_sections = intent_data.get("mandatory_sections", [])
 
         # Fetch full section texts from family_laws_final.json

@@ -19,7 +19,7 @@ class SemanticSearchService:
 
     def __init__(self):
         self.client = OpenAI(api_key=settings.openai_api_key)
-        self.model = "gpt-4o-mini"  # Cheap and fast
+        self.model = settings.search_model
         self.loader = get_data_loader()
 
     def search_relevant_acts(self, user_query: str, top_k: int = 3) -> List[str]:
@@ -38,7 +38,7 @@ class SemanticSearchService:
         for act_id, summary_data in self.loader.act_summaries.items():
             act_summaries.append({
                 "act_id": act_id,
-                "title": summary_data.get("act_title", ""),
+                "title": summary_data.get("title", ""),
                 "summary": summary_data.get("summary", ""),
             })
 
@@ -82,7 +82,7 @@ Pick the {top_k} most relevant acts. Be precise."""
 
         except Exception as e:
             logger.error("act_search_error", error=str(e), response=response.choices[0].message.content if 'response' in locals() else 'N/A')
-            return {"error": f"Act search failed: {str(e)}"}
+            return []
 
     def get_sections_from_act(
         self,
@@ -161,7 +161,7 @@ Be precise."""
 
         except Exception as e:
             logger.error("section_search_error", error=str(e), act_id=act_id)
-            return {"error": f"Section search failed for act {act_id}: {str(e)}"}
+            return []
 
 
 # Singleton instance
