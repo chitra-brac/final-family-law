@@ -116,7 +116,6 @@ final-family-law/
 │   ├── services/
 │   │   ├── llm_service.py         # GPT-5.1 integration + system prompt
 │   │   ├── data_loader.py         # JSON data loader (in-memory)
-│   │   ├── semantic_search.py     # Search via lightweight model
 │   │   └── supabase_service.py    # Chat persistence (optional)
 │   └── tools/
 │       └── legal_tools.py         # Tool definitions + execution

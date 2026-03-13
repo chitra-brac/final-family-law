@@ -1283,9 +1283,8 @@ To keep this PRD grounded in the shipping code, the major components above corre
 - `app/main.py` creates the FastAPI application, registers the `/chat`, `/chat/new`, and `/health` routes, and performs the same context-windowing + analytics logging steps documented in Sections 9–10.
 - `app/api/chat.py` exposes an identical router for deployments that mount the API module directly.
 - `app/services/llm_service.py` wraps the OpenAI Python SDK, injects the “AI lawyer” prompt, and runs the tool-calling loop. It honors `OPENAI_MODEL` (default `gpt-4-turbo` today) so engineers can switch to GPT‑5.1 Instant as soon as access is available.
-- `app/tools/legal_tools.py` defines the `get_legal_knowledge`, `get_procedural_guidance`, and `search_legal_sections` tools. The search tool now returns every section the semantic search service surfaces (no hard cap), matching the retrieval behavior promised in Section 7.
+- `app/tools/legal_tools.py` defines the `get_legal_knowledge`, `get_procedural_guidance`, and `search_legal_sections` tools. The search tool returns all section summaries from specified acts via pure in-memory lookup (no external API calls).
 - `app/services/data_loader.py` eagerly loads `data/family_laws_final.json`, `INTENT_MAPPINGS.json`, `procedural_knowledge.json`, and `act_summaries.json` into memory so tool executions stay deterministic and sub‑10ms.
-- `app/services/semantic_search.py` powers the GPT‑4o-mini retrieval loop that selects acts/sections when queries fall outside predefined intents.
 - `app/services/supabase_service.py` handles persistence and analytics. When `SUPABASE_URL`/`SUPABASE_KEY` are missing it transparently falls back to encrypted in-memory storage, aligning with the privacy expectations in Section 8 while still enabling logging in production.
 
 Keeping this subsection synchronized with the repository ensures the PRD remains a reliable reference for engineers and stakeholders.
