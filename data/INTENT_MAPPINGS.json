@@ -172,13 +172,48 @@
           "note": "Children's duty to maintain parents"
         }
       ]
+    },
+    "sexual_harassment": {
+      "description": "Sexual harassment at workplace, public places, or online",
+      "mandatory_sections": [
+        {
+          "act_id": "835",
+          "section_number": "১২",
+          "note": "Sexual harassment punishment - Women & Children Repression Prevention Act 2000"
+        },
+        {
+          "act_id": "835",
+          "section_number": "২",
+          "note": "Definitions (includes sexual harassment definition)"
+        }
+      ]
+    },
+    "cybercrime": {
+      "description": "Online harassment, revenge porn, cyber stalking, digital threats",
+      "mandatory_sections": [],
+      "note": "Relevant laws (Cyber Security Act 2023, Digital Security Act 2018, Pornography Control Act 2012) are not in the family_laws_final.json database. Use search_legal_sections or procedural_guidance for cybercrime topics."
+    },
+    "hindu_separation": {
+      "description": "Hindu marriage separation, maintenance for Hindu women",
+      "mandatory_sections": [
+        {
+          "act_id": "214",
+          "section_number": "২",
+          "note": "Grounds for claiming separate residence and maintenance - Hindu Married Women's Right to Separate Residence and Maintenance Act 1946"
+        },
+        {
+          "act_id": "214",
+          "section_number": "৩",
+          "note": "Amount of maintenance"
+        }
+      ]
     }
   },
   "stats": {
-    "total_intents": 12,
-    "total_mappings": 22,
-    "avg_sections_per_intent": 1.83,
-    "min_sections": 1,
+    "total_intents": 15,
+    "total_mappings": 26,
+    "avg_sections_per_intent": 1.73,
+    "min_sections": 0,
     "max_sections": 4
   },
   "methodology": "Manually curated by legal experts based on user query analysis and section relevance"

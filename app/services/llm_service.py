@@ -10,6 +10,7 @@ from openai import OpenAI
 import structlog
 
 from app.tools.legal_tools import LEGAL_TOOLS, execute_tool
+from app.config import get_settings
 
 logger = structlog.get_logger()
 
@@ -51,7 +52,7 @@ SYSTEM_PROMPT = """তুমি আইন বন্ধু - বাংলাদ�
    - get_legal_knowledge(intent) → আইনের ধারা
    - get_procedural_guidance(intent, topics) → পদক্ষেপ, সহায়তা
    - search_legal_sections(query) → যখন প্রশ্ন বিস্তারিত বা নতুন, এই টুল চালিয়ে যত প্রাসঙ্গিক ধারা পাওয়া যায় ততটাই আনো; স্পষ্ট ও নির্দিষ্ট প্রশ্ন দাও
-   - Topics থেকে 2-3টা সবচেয়ে প্রাসঙ্গিক বাছাই করো: file_fir, safety_planning, evidence_collection, get_legal_aid, protective_orders, court_procedures
+   - Topics থেকে 2-3টা সবচেয়ে প্রাসঙ্গিক বাছাই করো: file_fir, file_gd, safety_planning, evidence_collection, get_legal_aid, court_process, emergency_helplines, police_refuses
    - শুধু শুভেচ্ছা বা সাধারণ small-talk হলে প্রথমে উষ্ণ উত্তরে সাড়া দাও, আইনি প্রশ্ন এলে তবেই টুল চালাও
 
 3. **বাস্তব ও নির্দিষ্ট তথ্য দাও**:
@@ -156,12 +157,10 @@ class LLMService:
 
     def __init__(self):
         """Initialize OpenAI client"""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment variables")
+        settings = get_settings()
 
-        self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")  # Default to gpt-4-turbo if GPT-5.1 not available yet
+        self.client = OpenAI(api_key=settings.openai_api_key)
+        self.model = settings.openai_model
         logger.info("llm_service_initialized", model=self.model)
 
     def chat(

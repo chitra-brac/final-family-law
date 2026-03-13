@@ -94,9 +94,10 @@ async def chat(request: ChatRequest):
             # Generate summary of old messages
             summary = llm_service.summarize_conversation(old_messages)
 
-            # Prepare context: summary as system message + recent messages
+            # Prepend summary as a user context message (not system, to avoid double system messages)
             conversation_history = [
-                {"role": "system", "content": f"পূর্ববর্তী কথোপকথনের সংক্ষিপ্তসার:\n{summary}"}
+                {"role": "user", "content": f"[পূর্ববর্তী কথোপকথনের সংক্ষিপ্তসার: {summary}]"},
+                {"role": "assistant", "content": "বুঝেছি, আগের কথোপকথনের প্রসঙ্গ মনে রাখছি।"}
             ] + recent_messages
 
             logger.info(

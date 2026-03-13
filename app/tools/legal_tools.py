@@ -80,11 +80,13 @@ LEGAL_TOOLS = [
                             "type": "string",
                             "enum": [
                                 "file_fir",
+                                "file_gd",
                                 "get_legal_aid",
-                                "court_procedures",
+                                "court_process",
                                 "safety_planning",
                                 "evidence_collection",
-                                "protective_orders"
+                                "emergency_helplines",
+                                "police_refuses"
                             ]
                         },
                         "minItems": 0,
@@ -222,9 +224,11 @@ def get_available_topics() -> List[str]:
     """Get list of available procedural topics"""
     return [
         "file_fir",
+        "file_gd",
         "get_legal_aid",
-        "court_procedures",
+        "court_process",
         "safety_planning",
         "evidence_collection",
-        "protective_orders"
+        "emergency_helplines",
+        "police_refuses"
     ]

@@ -6,9 +6,11 @@ Uses GPT-4o-mini for fast, cheap act and section discovery
 from openai import OpenAI
 from typing import List, Dict, Any
 import json
+import structlog
 from app.config import get_settings
 from app.services.data_loader import get_data_loader
 
+logger = structlog.get_logger()
 settings = get_settings()
 
 
@@ -72,9 +74,7 @@ Pick the {top_k} most relevant acts. Be precise."""
             return act_ids[:top_k]
 
         except Exception as e:
-            print(f"Act search error: {e}")
-            print(f"Response: {response.choices[0].message.content if 'response' in locals() else 'N/A'}")
-            # Fallback to empty list
+            logger.error("act_search_error", error=str(e), response=response.choices[0].message.content if 'response' in locals() else 'N/A')
             return []
 
     def get_sections_from_act(
@@ -151,7 +151,7 @@ Be precise."""
             return full_sections
 
         except Exception as e:
-            print(f"Section search error: {e}")
+            logger.error("section_search_error", error=str(e), act_id=act_id)
             return []
 
 

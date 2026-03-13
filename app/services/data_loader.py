@@ -183,47 +183,6 @@ class DataLoader:
 
         return result
 
-    def get_support_resources(self, resource_type: str = "all") -> Dict[str, Any]:
-        """
-        Get support resources (organizations, helplines)
-
-        Args:
-            resource_type: "legal_aid", "shelter", "helpline", or "all"
-
-        Returns:
-            Dict with organizations and emergency contacts
-        """
-        # Collect from procedural knowledge
-        resources = {
-            "organizations": [],
-            "emergency_contacts": [],
-        }
-
-        # Get from general procedures (e.g., get_legal_aid)
-        legal_aid_info = self.get_procedural_guidance("get_legal_aid")
-        if "who_provides" in legal_aid_info:
-            resources["organizations"].extend(legal_aid_info["who_provides"])
-
-        # Get emergency contacts from safety_planning
-        safety_info = self.get_procedural_guidance("safety_planning")
-        if "immediate_safety" in safety_info:
-            emergency_contacts = safety_info["immediate_safety"].get("emergency_contacts", [])
-            resources["emergency_contacts"].extend(emergency_contacts)
-
-        # Add common emergency numbers
-        if not resources["emergency_contacts"]:
-            resources["emergency_contacts"] = [
-                {"name": "জাতীয় জরুরি", "number": "999", "available": "২৪/৭"},
-                {"name": "মহিলা ও শিশু হেল্পলাইন", "number": "10921", "available": "২৪/৭"},
-            ]
-
-        # Filter by type if specified
-        if resource_type != "all":
-            # TODO: Implement filtering by resource type
-            pass
-
-        return resources
-
     def get_act_summary(self, act_id: str) -> Dict[str, Any]:
         """
         Get summary of a specific act
