@@ -63,13 +63,18 @@
       "mandatory_sections": [
         {
           "act_id": "1207",
-          "section_number": "৩",
-          "note": "Child marriage prevention committee"
+          "section_number": "২",
+          "note": "Definition of child marriage and legal age"
         },
         {
           "act_id": "1207",
-          "section_number": "৪",
-          "note": "Government officials' duties to prevent child marriage"
+          "section_number": "৫",
+          "note": "Prohibition of child marriage and punishment for violation"
+        },
+        {
+          "act_id": "1207",
+          "section_number": "৭",
+          "note": "Punishment for child marriage (2yr + 1 lakh)"
         }
       ]
     },
@@ -85,6 +90,16 @@
           "act_id": "1063",
           "section_number": "১৪",
           "note": "DV protection order (can include custody)"
+        },
+        {
+          "act_id": "64",
+          "section_number": "১৮",
+          "note": "Guardians & Wards Act — matters to be considered by court: welfare, age, sex, religion, character"
+        },
+        {
+          "act_id": "1063",
+          "section_number": "১৭",
+          "note": "Safe custody order — child placed with mother during DV proceedings"
         }
       ]
     },
@@ -100,6 +115,16 @@
           "act_id": "305",
           "section_number": "৯",
           "note": "Muslim maintenance"
+        },
+        {
+          "act_id": "214",
+          "section_number": "২",
+          "note": "Hindu women's grounds for claiming separate residence and maintenance"
+        },
+        {
+          "act_id": "214",
+          "section_number": "৩",
+          "note": "Hindu maintenance amount"
         }
       ]
     },
@@ -211,8 +236,8 @@
   },
   "stats": {
     "total_intents": 15,
-    "total_mappings": 26,
-    "avg_sections_per_intent": 1.73,
+    "total_mappings": 31,
+    "avg_sections_per_intent": 2.07,
     "min_sections": 0,
     "max_sections": 4
   },

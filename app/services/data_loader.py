@@ -154,25 +154,18 @@ class DataLoader:
 
         Returns:
             Dict containing:
-            - lawyer_playbook: Intent-specific strategic guidance
-            - legal_process: Intent-specific legal process
-            - support_organizations: Relevant organizations
+            - intent_guidance: All intent-specific procedural knowledge
             - general_procedures: Selected general step-by-step procedures
         """
         result = {
-            "lawyer_playbook": {},
-            "legal_process": {},
-            "support_organizations": [],
+            "intent_guidance": {},
             "general_procedures": {}
         }
 
-        # Get intent-specific procedural knowledge
+        # Get intent-specific procedural knowledge (pass through all fields)
         intent_specific = self.procedural_knowledge.get("intent_specific", {})
         if intent in intent_specific:
-            intent_knowledge = intent_specific[intent]
-            result["lawyer_playbook"] = intent_knowledge.get("lawyer_playbook", {})
-            result["legal_process"] = intent_knowledge.get("legal_process", {})
-            result["support_organizations"] = intent_knowledge.get("support_organizations", [])
+            result["intent_guidance"] = intent_specific[intent]
 
         # Get selected general procedures if topics specified
         if topics:
@@ -183,17 +176,6 @@ class DataLoader:
 
         return result
 
-    def get_act_summary(self, act_id: str) -> Dict[str, Any]:
-        """
-        Get summary of a specific act
-
-        Args:
-            act_id: Act ID
-
-        Returns:
-            Dict with act summary
-        """
-        return self.act_summaries.get(act_id, {})
 
 
 # Global data loader instance

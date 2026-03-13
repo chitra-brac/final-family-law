@@ -70,12 +70,19 @@ Pick the {top_k} most relevant acts. Be precise."""
 
             # Extract act_ids from JSON object
             act_ids = data.get("act_ids", data.get("acts", []))
+            logger.info("act_search_result", query=user_query, raw_response=result, act_ids=act_ids)
 
-            return act_ids[:top_k]
+            # Validate: filter out hallucinated act_ids
+            valid_act_ids = [aid for aid in act_ids if aid in self.loader.sections]
+            if len(valid_act_ids) < len(act_ids):
+                invalid = set(act_ids) - set(valid_act_ids)
+                logger.warning("act_search_hallucinated_ids", invalid_ids=list(invalid))
+
+            return valid_act_ids[:top_k]
 
         except Exception as e:
             logger.error("act_search_error", error=str(e), response=response.choices[0].message.content if 'response' in locals() else 'N/A')
-            return []
+            return {"error": f"Act search failed: {str(e)}"}
 
     def get_sections_from_act(
         self,
@@ -148,11 +155,13 @@ Be precise."""
                         "semantic_summary": section_data.get("semantic_summary", ""),
                     })
 
+            logger.info("section_search_result", act_id=act_id, raw_response=result, matched=len(full_sections), requested=len(section_numbers))
+
             return full_sections
 
         except Exception as e:
             logger.error("section_search_error", error=str(e), act_id=act_id)
-            return []
+            return {"error": f"Section search failed for act {act_id}: {str(e)}"}
 
 
 # Singleton instance
