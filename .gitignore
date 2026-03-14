@@ -77,6 +77,7 @@ _archive/
 # Frontend PRD (work in progress)
 FRONTEND_PRD.md
 FRONTEND_PRD_DRAFT_OLD.md
+frontend-prompt.txt
 
 # Test files
 test_*.py
