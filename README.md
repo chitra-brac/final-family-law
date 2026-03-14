@@ -1,4 +1,4 @@
-# Ain Bandhu — Legal AI for Bangladeshi Women
+# Family Law Assistant for Bangladeshi Women
 
 AI-powered legal assistant providing free legal guidance to Bangladeshi women on family law, domestic violence, divorce, custody, and women's rights — in Bengali.
 
@@ -19,7 +19,7 @@ User (Bengali) ──► FastAPI ──► GPT-5.1 (reasoning)
                           (Bengali, conversational)
 ```
 
-All three tools are called **in parallel** on every legal question. All tools are in-memory JSON lookups (<10ms). `search_legal_sections` accepts optional `section_numbers` to return full law text for specific sections.
+GPT-5.1 decides which tools to call (often all three in parallel). All tools are in-memory JSON lookups (<10ms). `search_legal_sections` accepts optional `section_numbers` to return full law text for specific sections.
 
 ## Data
 
@@ -79,16 +79,15 @@ curl -X POST http://localhost:8000/chat \
 {
   "session_id": "uuid",
   "response": "আপনি এখন নিরাপদ তো? ...",
-  "tools_used": [...],
-  "tokens_used": 21866,
-  "response_time_ms": 9910,
-  "success": true
+  "intent": "domestic_violence_general",
+  "tools_used": ["get_legal_knowledge", "get_procedural_guidance", "search_legal_sections"],
+  "timestamp": "2026-03-14T12:00:00Z"
 }
 ```
 
 ### `GET /health`
 
-Returns `{"status": "healthy", "service": "ain-bandhu-legal-chatbot", "version": "1.0.0"}`.
+Returns `{"status": "healthy", "version": "1.0.0", "timestamp": "2026-03-14T12:00:00Z"}`.
 
 ## Supported intents
 
@@ -139,8 +138,8 @@ Set `OPENAI_API_KEY` in environment variables. Railway auto-detects and deploys.
 
 ### Docker
 ```bash
-docker build -t ain-bandhu .
-docker run -p 8000:8000 -e OPENAI_API_KEY=your_key ain-bandhu
+docker build -t family-law-assistant .
+docker run -p 8000:8000 -e OPENAI_API_KEY=your_key family-law-assistant
 ```
 
 ## License

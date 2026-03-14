@@ -4,9 +4,11 @@ Loads legal knowledge JSON files into memory for fast retrieval
 """
 
 import json
-import os
 from typing import Dict, List, Any
 from pathlib import Path
+import structlog
+
+logger = structlog.get_logger()
 
 
 class DataLoader:
@@ -24,7 +26,7 @@ class DataLoader:
         """
         self.data_dir = Path(data_dir)
         self.sections: Dict[str, Dict[str, Any]] = {}  # family_laws_final.json
-        self.intent_mappings: Dict[str, Any] = {}  # INTENT_MAPPINGS.json
+        self.intent_mappings: Dict[str, Any] = {}  # intent_mappings.json
         self.procedural_knowledge: Dict[str, Any] = {}  # procedural_knowledge.json
         self.act_summaries: Dict[str, Any] = {}  # act_summaries.json
 
@@ -32,12 +34,12 @@ class DataLoader:
 
     def _load_all(self):
         """Load all JSON files into memory"""
-        print("Loading legal knowledge data...")
+        logger.info("loading_legal_data")
 
         # Load family_laws_final.json
         self._load_legal_sections()
 
-        # Load INTENT_MAPPINGS.json
+        # Load intent_mappings.json
         self._load_intent_mappings()
 
         # Load procedural_knowledge.json
@@ -46,10 +48,10 @@ class DataLoader:
         # Load act_summaries.json
         self._load_act_summaries()
 
-        print(f"✓ Loaded {len(self.sections)} legal sections")
-        print(f"✓ Loaded {len(self.intent_mappings)} intent mappings")
-        print(f"✓ Loaded {len(self.act_summaries)} act summaries")
-        print("✓ Legal knowledge data loaded successfully")
+        logger.info("legal_data_loaded",
+                    sections=len(self.sections),
+                    intents=len(self.intent_mappings),
+                    act_summaries=len(self.act_summaries))
 
     def _load_legal_sections(self):
         """
@@ -73,7 +75,7 @@ class DataLoader:
                 self.sections[act_id][section_number] = section
 
     def _load_intent_mappings(self):
-        """Load INTENT_MAPPINGS.json"""
+        """Load intent_mappings.json"""
         file_path = self.data_dir / "intent_mappings.json"
 
         with open(file_path, "r", encoding="utf-8") as f:

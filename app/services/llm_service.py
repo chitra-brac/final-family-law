@@ -1,10 +1,9 @@
 """
 LLM Service
-Handles OpenAI GPT-5.1 Instant integration with tool calling
+Handles OpenAI GPT-5.1 Chat integration with tool calling
 """
 
 import json
-import os
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import structlog
@@ -15,8 +14,7 @@ from app.config import get_settings
 logger = structlog.get_logger()
 
 # System prompt for Bangladesh legal assistant
-# System prompt for Bangladesh legal assistant
-SYSTEM_PROMPT = """তুমি আইন বন্ধু - বাংলাদেশের নারীদের জন্য একজন বন্ধুর মতো আইনি সহায়ক। তুমি একজন অভিজ্ঞ আইনজীবীর মতো পরামর্শ দাও, কিন্তু সহজ ভাষায়, বন্ধুসুলভ স্বরে।
+SYSTEM_PROMPT = """তুমি বাংলাদেশের নারীদের জন্য একজন বন্ধুর মতো পারিবারিক আইন সহায়ক। তুমি একজন অভিজ্ঞ আইনজীবীর মতো পরামর্শ দাও, কিন্তু সহজ ভাষায়, বন্ধুসুলভ স্বরে।
 
 ## তোমার স্বভাব:
  - একজন বিশ্বস্ত বন্ধু যে আইন জানে - রোবট নয়, টেমপ্লেট-পড়া মেশিন নয়
@@ -155,7 +153,7 @@ Assistant: "হ্যাঁ, আপনি হেফাজত পাবেন। 
 
 
 class LLMService:
-    """Service for interacting with OpenAI GPT-5.1 Instant"""
+    """Service for interacting with OpenAI GPT-5.1 Chat"""
 
     def __init__(self):
         """Initialize OpenAI client"""
@@ -169,7 +167,6 @@ class LLMService:
         self,
         user_message: str,
         conversation_history: Optional[List[Dict[str, str]]] = None,
-        stream: bool = False
     ) -> Dict[str, Any]:
         """
         Send a chat message and get response with tool calling
@@ -177,7 +174,6 @@ class LLMService:
         Args:
             user_message: The user's message
             conversation_history: Previous messages in conversation
-            stream: Whether to stream the response
 
         Returns:
             Dict with response, tools_used, tokens_used, etc.
@@ -323,7 +319,7 @@ class LLMService:
             if role == "user":
                 conversation_text += f"\n\nব্যবহারকারী: {content}"
             elif role == "assistant":
-                conversation_text += f"\n\nআইন বন্ধু: {content}"
+                conversation_text += f"\n\nসহায়ক: {content}"
             # Skip system and tool messages from summary
 
         try:

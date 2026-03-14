@@ -3,12 +3,13 @@ Supabase Service
 Handles conversation storage and analytics logging with profile-based tracking
 """
 
-import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import json
 from supabase import create_client, Client
 import structlog
+
+from app.config import get_settings
 
 logger = structlog.get_logger()
 
@@ -18,8 +19,9 @@ class SupabaseService:
 
     def __init__(self):
         """Initialize Supabase client"""
-        supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
+        settings = get_settings()
+        supabase_url = settings.supabase_url
+        supabase_key = settings.supabase_key
 
         if not supabase_url or not supabase_key:
             logger.warning("supabase_not_configured",
@@ -158,7 +160,7 @@ class SupabaseService:
         sections_retrieved: int = 0,
         tokens_used: int = 0,
         response_time_ms: int = 0,
-        model: str = "gpt-5.1-chat-latest",
+        model: Optional[str] = None,
         success: bool = True,
         error_message: Optional[str] = None
     ) -> Optional[str]:
@@ -180,6 +182,9 @@ class SupabaseService:
         Returns:
             Analytics record ID if successful, None otherwise
         """
+        if model is None:
+            model = get_settings().openai_model
+
         if not self.client:
             # In-memory: just log
             logger.info(
@@ -215,24 +220,6 @@ class SupabaseService:
             logger.error("analytics_log_error", error=str(e), profile_id=profile_id)
             return None
 
-    def get_intent_analytics(self) -> List[Dict[str, Any]]:
-        """
-        Get analytics grouped by intent
-
-        Returns:
-            List of intent analytics
-        """
-        if not self.client:
-            logger.info("analytics_not_available_in_memory")
-            return []
-
-        try:
-            result = self.client.rpc('get_intent_analytics').execute()
-            return result.data if result.data else []
-
-        except Exception as e:
-            logger.error("intent_analytics_error", error=str(e))
-            return []
 
 
 # Global Supabase service instance

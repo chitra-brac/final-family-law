@@ -1,5 +1,5 @@
 """
-Ain Bandhu (আইন বন্ধু) - AI Legal Assistant for Bangladeshi Women
+Family Law Assistant for Bangladeshi Women
 Family Law Chatbot Application
 """
 

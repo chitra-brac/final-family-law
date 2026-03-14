@@ -1,4 +1,4 @@
--- Ain Bandhu Database Schema - Profile-Based Architecture
+-- Family Law Assistant Database Schema - Profile-Based Architecture
 -- Run this in: Supabase Dashboard > SQL Editor > "New query"
 
 -- Enable UUID extension

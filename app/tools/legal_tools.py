@@ -3,9 +3,22 @@ Legal Tools for OpenAI Function Calling
 Provides access to legal knowledge and procedural guidance
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 from app.services.data_loader import get_data_loader
 
+INTENT_ENUM = [
+    "rape_sexual_violence", "domestic_violence_general", "dowry",
+    "child_marriage", "custody", "maintenance", "divorce_talaq",
+    "polygamy_second_marriage", "inheritance_succession",
+    "marriage_registration", "dower_mehr", "parent_maintenance",
+    "sexual_harassment", "cybercrime", "hindu_separation"
+]
+
+TOPIC_ENUM = [
+    "file_fir", "file_gd", "get_legal_aid", "court_process",
+    "safety_planning", "evidence_collection", "emergency_helplines",
+    "police_refuses"
+]
 
 # OpenAI function definitions
 LEGAL_TOOLS = [
@@ -20,23 +33,7 @@ LEGAL_TOOLS = [
                     "intent": {
                         "type": "string",
                         "description": "The legal intent category",
-                        "enum": [
-                            "rape_sexual_violence",
-                            "domestic_violence_general",
-                            "dowry",
-                            "child_marriage",
-                            "custody",
-                            "maintenance",
-                            "divorce_talaq",
-                            "polygamy_second_marriage",
-                            "inheritance_succession",
-                            "marriage_registration",
-                            "dower_mehr",
-                            "parent_maintenance",
-                            "sexual_harassment",
-                            "cybercrime",
-                            "hindu_separation"
-                        ]
+                        "enum": INTENT_ENUM
                     }
                 },
                 "required": ["intent"]
@@ -54,39 +51,14 @@ LEGAL_TOOLS = [
                     "intent": {
                         "type": "string",
                         "description": "The legal intent category",
-                        "enum": [
-                            "rape_sexual_violence",
-                            "domestic_violence_general",
-                            "dowry",
-                            "child_marriage",
-                            "custody",
-                            "maintenance",
-                            "divorce_talaq",
-                            "polygamy_second_marriage",
-                            "inheritance_succession",
-                            "marriage_registration",
-                            "dower_mehr",
-                            "parent_maintenance",
-                            "sexual_harassment",
-                            "cybercrime",
-                            "hindu_separation"
-                        ]
+                        "enum": INTENT_ENUM
                     },
                     "topics": {
                         "type": "array",
                         "description": "Optional: select 2-3 most relevant general procedures (filing FIR, safety planning, etc). If not specified, only intent-specific guidance is returned.",
                         "items": {
                             "type": "string",
-                            "enum": [
-                                "file_fir",
-                                "file_gd",
-                                "get_legal_aid",
-                                "court_process",
-                                "safety_planning",
-                                "evidence_collection",
-                                "emergency_helplines",
-                                "police_refuses"
-                            ]
+                            "enum": TOPIC_ENUM
                         },
                         "minItems": 0,
                         "maxItems": 3
@@ -217,38 +189,3 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
 
     else:
         return {"error": f"Unknown tool: {tool_name}"}
-
-
-def get_available_intents() -> List[str]:
-    """Get list of available intent categories"""
-    return [
-        "rape_sexual_violence",
-        "domestic_violence_general",
-        "dowry",
-        "child_marriage",
-        "custody",
-        "maintenance",
-        "divorce_talaq",
-        "polygamy_second_marriage",
-        "inheritance_succession",
-        "marriage_registration",
-        "dower_mehr",
-        "parent_maintenance",
-        "sexual_harassment",
-        "cybercrime",
-        "hindu_separation"
-    ]
-
-
-def get_available_topics() -> List[str]:
-    """Get list of available procedural topics"""
-    return [
-        "file_fir",
-        "file_gd",
-        "get_legal_aid",
-        "court_process",
-        "safety_planning",
-        "evidence_collection",
-        "emergency_helplines",
-        "police_refuses"
-    ]

@@ -1,6 +1,6 @@
 """
 Main FastAPI application
-Ain Bandhu - AI Legal Assistant for Bangladeshi Women
+Family Law Assistant for Bangladeshi Women
 """
 
 from fastapi import FastAPI, HTTPException
@@ -27,7 +27,7 @@ logger = structlog.get_logger()
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="AI-powered legal assistant chatbot for underprivileged Bangladeshi women",
+    description="AI-powered family law assistant chatbot for Bangladeshi women",
     docs_url="/docs" if settings.debug else None,  # Disable docs in production
     redoc_url="/redoc" if settings.debug else None,
 )
@@ -47,7 +47,7 @@ async def startup_event():
     """
     Startup event - load data, initialize services
     """
-    print(f"Starting {settings.app_name} v{settings.app_version}")
+    logger.info("app_starting", app=settings.app_name, version=settings.app_version)
 
     # Initialize services (lazy loading on first use)
     from app.services.data_loader import get_data_loader
@@ -56,21 +56,21 @@ async def startup_event():
 
     # Pre-load data
     data_loader = get_data_loader()
-    print("✓ Data loaded into memory")
+    logger.info("data_loaded")
 
     # Initialize LLM service
     try:
         llm_service = get_llm_service()
-        print(f"✓ LLM service initialized ({llm_service.model})")
+        logger.info("llm_service_ready", model=llm_service.model)
     except Exception as e:
-        print(f"⚠ LLM service initialization warning: {e}")
+        logger.warning("llm_service_init_warning", error=str(e))
 
     # Initialize Supabase
     supabase_service = get_supabase_service()
     if supabase_service.client:
-        print("✓ Supabase connected")
+        logger.info("supabase_connected")
     else:
-        print("⚠ Supabase not configured (using in-memory storage)")
+        logger.warning("supabase_not_configured", message="Using in-memory storage")
 
 
 @app.on_event("shutdown")
@@ -78,7 +78,7 @@ async def shutdown_event():
     """
     Shutdown event - cleanup
     """
-    print(f"Shutting down {settings.app_name}")
+    logger.info("app_shutting_down", app=settings.app_name)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -104,7 +104,7 @@ async def create_new_session(request: NewSessionRequest):
 
     return NewSessionResponse(
         session_id=session_id,
-        greeting="আসসালামু আলাইকুম। আমি আইন বন্ধু, আপনার আইনি সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?",
+        greeting="আসসালামু আলাইকুম। আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?",
     )
 
 
@@ -226,7 +226,6 @@ async def chat(request: ChatRequest):
             session_id=profile_id,  # Return as session_id for frontend compatibility
             response=result["response"],
             intent=intent_detected,
-            urgency=None,  # Can add urgency detection later
             tools_used=[tool["tool"] for tool in result["tools_used"]],
         )
 
@@ -241,7 +240,7 @@ async def chat(request: ChatRequest):
                 success=False,
                 error_message=str(e)
             )
-        except:
+        except Exception:
             pass
 
         raise HTTPException(
