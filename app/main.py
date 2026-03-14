@@ -3,59 +3,38 @@ Main FastAPI application
 Family Law Assistant for Bangladeshi Women
 """
 
+import time
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uuid
-from datetime import datetime
 import structlog
 
 from app.config import get_settings
 from app.models import (
     ChatRequest,
     ChatResponse,
-    NewSessionRequest,
     NewSessionResponse,
     HealthResponse,
 )
+from app.services.data_loader import get_data_loader
+from app.services.llm_service import get_llm_service
+from app.services.supabase_service import get_supabase_service
 
 # Initialize settings and logger
 settings = get_settings()
 logger = structlog.get_logger()
 
-# Create FastAPI app
-app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    description="AI-powered family law assistant chatbot for Bangladeshi women",
-    docs_url="/docs" if settings.debug else None,  # Disable docs in production
-    redoc_url="/redoc" if settings.debug else None,
-)
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """
-    Startup event - load data, initialize services
-    """
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown lifecycle."""
     logger.info("app_starting", app=settings.app_name, version=settings.app_version)
 
-    # Initialize services (lazy loading on first use)
-    from app.services.data_loader import get_data_loader
-    from app.services.llm_service import get_llm_service
-    from app.services.supabase_service import get_supabase_service
-
     # Pre-load data
-    data_loader = get_data_loader()
+    get_data_loader()
     logger.info("data_loaded")
 
     # Initialize LLM service
@@ -72,20 +51,34 @@ async def startup_event():
     else:
         logger.warning("supabase_not_configured", message="Using in-memory storage")
 
+    yield
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Shutdown event - cleanup
-    """
     logger.info("app_shutting_down", app=settings.app_name)
+
+
+# Create FastAPI app
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    description="AI-powered family law assistant chatbot for Bangladeshi women",
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    lifespan=lifespan,
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """
-    Health check endpoint
-    """
+    """Health check endpoint."""
     return HealthResponse(
         status="healthy",
         version=settings.app_version,
@@ -93,14 +86,12 @@ async def health_check():
 
 
 @app.post("/chat/new", response_model=NewSessionResponse)
-async def create_new_session(request: NewSessionRequest):
+async def create_new_session():
     """
-    Create a new chat session
-    Returns a unique session ID and greeting message
+    Create a new chat session.
+    Returns a unique session ID and greeting message.
     """
     session_id = str(uuid.uuid4())
-
-    # TODO: Store session in Supabase
 
     return NewSessionResponse(
         session_id=session_id,
@@ -111,73 +102,31 @@ async def create_new_session(request: NewSessionRequest):
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Main chat endpoint
-    Processes user message and returns AI response
+    Main chat endpoint.
+    Processes user message and returns AI response.
 
     Flow:
-    1. Get conversation history from Supabase (up to 50 messages)
-    2. Smart context windowing: if > 10 messages, summarize old ones
-    3. Send message to OpenAI with tools
-    4. Execute tools if called
-    5. Store conversation in Supabase
-    6. Return response
+    1. Fetch conversation history from Supabase (up to 50 messages)
+    2. Call LLM with history + current message
+    3. Store user message and assistant response
     """
-    import time
-    from app.services.llm_service import get_llm_service
-    from app.services.supabase_service import get_supabase_service
-
     start_time = time.time()
-    profile_id = request.session_id  # Using session_id as profile_id for now (frontend compatibility)
+    session_id = request.session_id
 
     try:
-        llm_service = get_llm_service()
         supabase_service = get_supabase_service()
-
-        # Store user message
-        supabase_service.store_message(
-            profile_id=profile_id,
-            role="user",
-            content=request.message
-        )
+        llm_service = get_llm_service()
 
         # Get conversation history (up to 50 messages)
-        all_messages = supabase_service.get_conversation_history(
-            profile_id=profile_id,
+        history = supabase_service.get_conversation_history(
+            profile_id=session_id,
             limit=50
         )
-
-        # Exclude the message we just added
-        history = all_messages[:-1] if all_messages else []
-
-        # Smart context windowing: summarize old messages if > 10
-        if len(history) > 10:
-            # Split into old (to summarize) and recent (keep verbatim)
-            old_messages = history[:-10]
-            recent_messages = history[-10:]
-
-            # Generate summary of old messages
-            summary = llm_service.summarize_conversation(old_messages)
-
-            # Prepare context: summary as system message + recent messages
-            conversation_history = [
-                {"role": "system", "content": f"পূর্ববর্তী কথোপকথনের সংক্ষিপ্তসার:\n{summary}"}
-            ] + recent_messages
-
-            logger.info(
-                "context_summarized",
-                profile_id=profile_id,
-                old_messages_count=len(old_messages),
-                recent_messages_count=len(recent_messages),
-                summary_length=len(summary)
-            )
-        else:
-            # Short conversation, use all messages as-is
-            conversation_history = history
 
         # Call LLM with tools
         result = llm_service.chat(
             user_message=request.message,
-            conversation_history=conversation_history
+            conversation_history=history
         )
 
         if not result["success"]:
@@ -186,9 +135,14 @@ async def chat(request: ChatRequest):
                 detail=result.get("error", "Failed to generate response")
             )
 
-        # Store assistant response
+        # Store user message and assistant response
         supabase_service.store_message(
-            profile_id=profile_id,
+            profile_id=session_id,
+            role="user",
+            content=request.message
+        )
+        supabase_service.store_message(
+            profile_id=session_id,
             role="assistant",
             content=result["response"]
         )
@@ -211,7 +165,7 @@ async def chat(request: ChatRequest):
         # Log analytics
         response_time_ms = int((time.time() - start_time) * 1000)
         supabase_service.log_analytics(
-            profile_id=profile_id,
+            profile_id=session_id,
             user_query=request.message,
             intent_detected=intent_detected,
             tools_used=result["tools_used"],
@@ -223,7 +177,7 @@ async def chat(request: ChatRequest):
         )
 
         return ChatResponse(
-            session_id=profile_id,  # Return as session_id for frontend compatibility
+            session_id=session_id,
             response=result["response"],
             intent=intent_detected,
             tools_used=[tool["tool"] for tool in result["tools_used"]],
@@ -235,7 +189,7 @@ async def chat(request: ChatRequest):
         # Log failed analytics
         try:
             supabase_service.log_analytics(
-                profile_id=profile_id,
+                profile_id=session_id,
                 user_query=request.message,
                 success=False,
                 error_message=str(e)
@@ -251,9 +205,8 @@ async def chat(request: ChatRequest):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """
-    Global exception handler
-    """
+    """Global exception handler."""
+    logger.error("unhandled_exception", error=str(exc), error_type=type(exc).__name__)
     return JSONResponse(
         status_code=500,
         content={
