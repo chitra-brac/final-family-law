@@ -74,9 +74,7 @@ NOTES.md
 # Archive folder (historical/context docs)
 _archive/
 
-# Frontend PRD (work in progress)
-FRONTEND_PRD.md
-FRONTEND_PRD_DRAFT_OLD.md
+# Frontend prompt (work in progress)
 frontend-prompt.txt
 
 # Test files
