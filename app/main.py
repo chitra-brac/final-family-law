@@ -246,7 +246,7 @@ async def chat(request: ChatRequest):
 
         raise HTTPException(
             status_code=500,
-            detail=f"An error occurred: {str(e)}"
+            detail="An internal error occurred. Please try again."
         )
 
 

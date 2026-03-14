@@ -5,7 +5,7 @@ Handles OpenAI GPT-5.1 Instant integration with tool calling
 
 import json
 import os
-from typing import List, Dict, Any, Optional, Iterator
+from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import structlog
 
@@ -286,37 +286,6 @@ class LLMService:
                 "tokens_used": total_tokens,
                 "success": False
             }
-
-    def chat_stream(
-        self,
-        user_message: str,
-        conversation_history: Optional[List[Dict[str, str]]] = None
-    ) -> Iterator[str]:
-        """
-        Stream chat response (simplified version without tool calling)
-        For MVP, we'll use non-streaming with tools, then stream the final response
-
-        Args:
-            user_message: The user's message
-            conversation_history: Previous messages
-
-        Yields:
-            Response chunks
-        """
-        # For now, get full response then yield it
-        # TODO: Implement proper streaming with tool calls
-        result = self.chat(user_message, conversation_history, stream=False)
-
-        if result["success"]:
-            # Yield response word by word for streaming effect
-            words = result["response"].split()
-            for i, word in enumerate(words):
-                if i == len(words) - 1:
-                    yield word
-                else:
-                    yield word + " "
-        else:
-            yield result["response"]
 
     def summarize_conversation(
         self,

@@ -158,7 +158,7 @@ class SupabaseService:
         sections_retrieved: int = 0,
         tokens_used: int = 0,
         response_time_ms: int = 0,
-        model: str = "gpt-5-nano",
+        model: str = "gpt-5.1-chat-latest",
         success: bool = True,
         error_message: Optional[str] = None
     ) -> Optional[str]:

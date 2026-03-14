@@ -11,7 +11,7 @@ User (Bengali) ──► FastAPI ──► GPT-5.1 (reasoning)
                     ▼             ▼             ▼
              get_legal_     get_procedural_  search_legal_
              knowledge      guidance         sections
-             (JSON lookup)  (JSON lookup)    (gpt-4o-mini)
+             (JSON lookup)  (JSON lookup)    (JSON lookup)
                     │             │             │
                     └─────────────┼─────────────┘
                                   ▼
@@ -19,7 +19,7 @@ User (Bengali) ──► FastAPI ──► GPT-5.1 (reasoning)
                           (Bengali, conversational)
 ```
 
-All three tools are called **in parallel** on every legal question. The two lookup tools return in <10ms; the search tool uses a lightweight model for act/section discovery across the full corpus.
+All three tools are called **in parallel** on every legal question. All tools are in-memory JSON lookups (<10ms). `search_legal_sections` accepts optional `section_numbers` to return full law text for specific sections.
 
 ## Data
 
@@ -36,7 +36,7 @@ All three tools are called **in parallel** on every legal question. The two look
 |------|--------|---------|------|-------------------|
 | `get_legal_knowledge` | intent_mappings.json → family_laws_final.json | <10ms | $0 | 31 (curated per intent) |
 | `get_procedural_guidance` | procedural_knowledge.json | <10ms | $0 | — (procedures, not sections) |
-| `search_legal_sections` | GPT model → family_laws_final.json | ~1s | ~0.8c | 1,512 (full corpus) |
+| `search_legal_sections` | act_summaries.json + family_laws_final.json | <10ms | $0 | 1,512 (full corpus) |
 
 The 15 intents cover 12 acts with 31 curated sections. The remaining 46 acts and 1,481 sections are accessible only through `search_legal_sections`.
 
@@ -44,8 +44,8 @@ The 15 intents cover 12 acts with 31 curated sections. The remaining 46 acts and
 
 1. User sends Bengali message via `POST /chat`
 2. GPT-5.1 analyzes the question and calls all 3 tools in parallel
-3. Lookup tools return curated sections + procedures from JSON (<10ms)
-4. Search tool discovers relevant sections from the full 1,512-section corpus (~1s, runs in parallel)
+3. All tools return from in-memory JSON (<10ms)
+4. `search_legal_sections` returns summaries; if `section_numbers` passed, includes full law text for those sections
 5. GPT-5.1 synthesizes all tool results into a conversational Bengali response
 6. Response returned with metadata (tools used, token count, timing)
 
@@ -100,7 +100,6 @@ Domestic violence, rape/sexual violence, sexual harassment, dowry, child marriag
 |----------|----------|---------|-------------|
 | `OPENAI_API_KEY` | Yes | — | OpenAI API key |
 | `OPENAI_MODEL` | No | `gpt-5.1-chat-latest` | Main reasoning model |
-| `SEARCH_MODEL` | No | `gpt-4o-mini` | Model for semantic search |
 | `SUPABASE_URL` | No | — | Chat history persistence |
 | `SUPABASE_KEY` | No | — | Chat history persistence |
 | `DEBUG` | No | `False` | Debug mode |
@@ -112,7 +111,6 @@ final-family-law/
 ├── app/
 │   ├── main.py                    # FastAPI app
 │   ├── config.py                  # Settings (env vars)
-│   ├── api/chat.py                # Chat endpoint
 │   ├── services/
 │   │   ├── llm_service.py         # GPT-5.1 integration + system prompt
 │   │   ├── data_loader.py         # JSON data loader (in-memory)
@@ -131,7 +129,7 @@ final-family-law/
 
 - Response time: 10-30s (GPT-5.1 with reasoning)
 - Token usage: ~20k tokens per complex query
-- Cost: ~5.6c per query (GPT-5.1 + search model)
+- Cost: ~4.8c per query (GPT-5.1 only, all tools are free lookups)
 - Data: 1,512 sections across 58 Bangladesh family law acts
 
 ## Deployment
