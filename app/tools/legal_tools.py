@@ -162,7 +162,7 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             if act_summary:
                 act_summaries.append({
                     "act_id": act_id,
-                    "act_title": act_summary.get("act_title", ""),
+                    "act_title": act_summary.get("title", ""),
                     "summary": act_summary.get("summary", ""),
                 })
 

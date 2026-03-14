@@ -256,7 +256,7 @@ class LLMService:
                 total_tokens += response.usage.total_tokens
 
             # Get final text response
-            final_response = message.content
+            final_response = message.content or ""
 
             logger.info(
                 "chat_response_complete",
