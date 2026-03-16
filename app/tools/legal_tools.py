@@ -6,6 +6,8 @@ Provides access to legal knowledge and procedural guidance
 from typing import Dict, Any
 from app.services.data_loader import get_data_loader
 
+MAX_SUMMARY_SECTIONS = 200
+
 INTENT_ENUM = [
     "rape_sexual_violence", "domestic_violence_general", "dowry",
     "child_marriage", "custody", "maintenance", "divorce_talaq",
@@ -179,6 +181,19 @@ def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
                 if section_numbers and section_num in section_numbers:
                     entry["section_text"] = section_data.get("section_text", "")
                 all_sections.append(entry)
+
+        if not section_numbers and len(all_sections) > MAX_SUMMARY_SECTIONS:
+            total_available = len(all_sections)
+            all_sections = all_sections[:MAX_SUMMARY_SECTIONS]
+            return {
+                "acts_searched": act_ids,
+                "act_summaries": act_summaries,
+                "sections_count": len(all_sections),
+                "total_sections_available": total_available,
+                "truncated": True,
+                "truncation_note": f"{total_available - MAX_SUMMARY_SECTIONS} sections omitted. Use section_numbers to request specific sections.",
+                "legal_sections": all_sections
+            }
 
         return {
             "acts_searched": act_ids,
