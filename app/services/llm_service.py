@@ -209,32 +209,19 @@ class LLMService:
             message = response.choices[0].message
             total_tokens += response.usage.total_tokens
 
-            # Tool calling loop
-            max_tool_rounds = 3
-            round_count = 0
-            while message.tool_calls and round_count < max_tool_rounds:
-                round_count += 1
-                # Add assistant's tool call message to history
+            if message.tool_calls:
                 messages.append(message.model_dump())
 
-                # Execute each tool call
                 for tool_call in message.tool_calls:
                     function_name = tool_call.function.name
                     function_args = json.loads(tool_call.function.arguments)
-
                     logger.info("executing_tool", tool=function_name, args=function_args)
-
-                    # Execute the tool
                     tool_result = execute_tool(function_name, function_args)
-
-                    # Track usage
                     tools_used.append({
                         "tool": function_name,
                         "args": function_args,
                         "sections_count": tool_result.get("sections_count", 0)
                     })
-
-                    # Add tool result to messages
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
@@ -242,16 +229,12 @@ class LLMService:
                         "content": json.dumps(tool_result, ensure_ascii=False)
                     })
 
-                # Follow-up call includes tools so model can make additional calls if needed
+                # Follow-up call WITHOUT tools — model must respond with text
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    tools=LEGAL_TOOLS,
-                    tool_choice="auto",
-                    parallel_tool_calls=True,
                     reasoning_effort="medium",
                 )
-
                 message = response.choices[0].message
                 total_tokens += response.usage.total_tokens
 
