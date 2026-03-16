@@ -57,6 +57,7 @@ class SupabaseService:
     def store_message(
         self,
         profile_id: str,
+        session_id: str,
         role: str,
         content: str,
         metadata: Optional[Dict[str, Any]] = None
@@ -66,6 +67,7 @@ class SupabaseService:
 
         Args:
             profile_id: Unique profile identifier
+            session_id: Session identifier for this conversation
             role: Message role (user, assistant, system, tool)
             content: Message content
             metadata: Optional metadata
@@ -74,20 +76,21 @@ class SupabaseService:
             Message ID if successful, None otherwise
         """
         if not self.client:
-            # In-memory fallback
-            if profile_id not in self._in_memory_conversations:
-                self._in_memory_conversations[profile_id] = []
+            # In-memory fallback keyed by session_id
+            if session_id not in self._in_memory_conversations:
+                self._in_memory_conversations[session_id] = []
 
             message = {
-                "id": f"mem-{len(self._in_memory_conversations[profile_id])}",
+                "id": f"mem-{len(self._in_memory_conversations[session_id])}",
                 "profile_id": profile_id,
+                "session_id": session_id,
                 "role": role,
                 "content": content,
                 "metadata": metadata or {},
                 "created_at": datetime.now().isoformat()
             }
-            self._in_memory_conversations[profile_id].append(message)
-            logger.info("message_stored_in_memory", profile_id=profile_id, role=role)
+            self._in_memory_conversations[session_id].append(message)
+            logger.info("message_stored_in_memory", session_id=session_id, role=role)
             return message["id"]
 
         try:
@@ -97,37 +100,38 @@ class SupabaseService:
             # Store message
             result = self.client.table("conversations").insert({
                 "profile_id": profile_id,
+                "session_id": session_id,
                 "role": role,
                 "content": content,
                 "metadata": metadata or {}
             }).execute()
 
             message_id = result.data[0]["id"] if result.data else None
-            logger.info("message_stored", profile_id=profile_id, role=role, message_id=message_id)
+            logger.info("message_stored", session_id=session_id, role=role, message_id=message_id)
             return message_id
 
         except Exception as e:
-            logger.error("message_store_error", error=str(e), profile_id=profile_id)
+            logger.error("message_store_error", error=str(e), session_id=session_id)
             return None
 
     def get_conversation_history(
         self,
-        profile_id: str,
+        session_id: str,
         limit: int = 50
     ) -> List[Dict[str, str]]:
         """
-        Retrieve conversation history for a profile
+        Retrieve conversation history for a session
 
         Args:
-            profile_id: Profile identifier
+            session_id: Session identifier
             limit: Maximum number of messages to retrieve
 
         Returns:
             List of messages in chronological order
         """
         if not self.client:
-            # In-memory fallback
-            messages = self._in_memory_conversations.get(profile_id, [])
+            # In-memory fallback keyed by session_id
+            messages = self._in_memory_conversations.get(session_id, [])
             return [
                 {"role": msg["role"], "content": msg["content"]}
                 for msg in messages[-limit:]
@@ -136,7 +140,7 @@ class SupabaseService:
         try:
             # Use the helper function
             result = self.client.rpc('get_conversation_history', {
-                'p_profile_id': profile_id,
+                'p_session_id': session_id,
                 'p_limit': limit
             }).execute()
 
@@ -148,7 +152,7 @@ class SupabaseService:
             return []
 
         except Exception as e:
-            logger.error("conversation_history_error", error=str(e), profile_id=profile_id)
+            logger.error("conversation_history_error", error=str(e), session_id=session_id)
             return []
 
     def log_analytics(

@@ -32,6 +32,7 @@ DROP TABLE IF EXISTS conversations CASCADE;
 CREATE TABLE conversations (
     id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     profile_id text NOT NULL REFERENCES user_profiles(profile_id) ON DELETE CASCADE,
+    session_id text NOT NULL,
 
     -- Message data
     role text NOT NULL CHECK (role IN ('user', 'assistant', 'system', 'tool')),
@@ -45,7 +46,8 @@ CREATE TABLE conversations (
 );
 
 CREATE INDEX idx_conversations_profile_id ON conversations(profile_id);
-CREATE INDEX idx_conversations_profile_created ON conversations(profile_id, created_at ASC);
+CREATE INDEX idx_conversations_session_id ON conversations(session_id);
+CREATE INDEX idx_conversations_session_created ON conversations(session_id, created_at ASC);
 
 -- ========================================
 -- TABLE: query_analytics
@@ -168,7 +170,7 @@ $$;
 
 -- Get conversation history
 CREATE OR REPLACE FUNCTION get_conversation_history(
-    p_profile_id text,
+    p_session_id text,
     p_limit integer DEFAULT 50
 )
 RETURNS TABLE (role text, content text, created_at timestamptz)
@@ -178,7 +180,7 @@ BEGIN
     RETURN QUERY
     SELECT c.role, c.content, c.created_at
     FROM conversations c
-    WHERE c.profile_id = p_profile_id
+    WHERE c.session_id = p_session_id
     ORDER BY c.created_at ASC
     LIMIT p_limit;
 END;

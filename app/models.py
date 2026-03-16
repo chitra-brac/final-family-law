@@ -10,6 +10,7 @@ from datetime import datetime
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
 
+    profile_id: str = Field(..., description="Persistent anonymous profile ID")
     session_id: str = Field(..., description="Unique session ID for conversation tracking")
     message: str = Field(..., min_length=1, max_length=1000, description="User message in Bengali or English")
 
@@ -17,6 +18,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""
 
+    profile_id: str
     session_id: str
     response: str = Field(..., description="AI assistant response in Bengali")
     intent: Optional[str] = Field(None, description="Classified intent if applicable")
@@ -26,12 +28,13 @@ class ChatResponse(BaseModel):
 
 class NewSessionRequest(BaseModel):
     """Request model for creating new session"""
-    pass
+    profile_id: Optional[str] = None
 
 
 class NewSessionResponse(BaseModel):
     """Response model for new session"""
 
+    profile_id: str
     session_id: str
     greeting: str = Field(default="আসসালামু আলাইকুম। আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?")
     timestamp: datetime = Field(default_factory=datetime.utcnow)

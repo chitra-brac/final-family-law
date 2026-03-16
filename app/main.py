@@ -16,6 +16,7 @@ from app.config import get_settings
 from app.models import (
     ChatRequest,
     ChatResponse,
+    NewSessionRequest,
     NewSessionResponse,
     HealthResponse,
 )
@@ -86,14 +87,21 @@ async def health_check():
 
 
 @app.post("/chat/new", response_model=NewSessionResponse)
-async def create_new_session():
+async def create_new_session(request: NewSessionRequest = NewSessionRequest()):
     """
     Create a new chat session.
-    Returns a unique session ID and greeting message.
+    Accepts optional profile_id for returning users.
+    Returns profile_id, session_id, and greeting message.
     """
+    profile_id = request.profile_id or str(uuid.uuid4())
     session_id = str(uuid.uuid4())
 
+    # Ensure profile exists in Supabase
+    supabase_service = get_supabase_service()
+    supabase_service.ensure_profile(profile_id)
+
     return NewSessionResponse(
+        profile_id=profile_id,
         session_id=session_id,
         greeting="আসসালামু আলাইকুম। আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?",
     )
@@ -111,15 +119,16 @@ async def chat(request: ChatRequest):
     3. Store user message and assistant response
     """
     start_time = time.time()
+    profile_id = request.profile_id
     session_id = request.session_id
 
     try:
         supabase_service = get_supabase_service()
         llm_service = get_llm_service()
 
-        # Get conversation history (up to 50 messages)
+        # Get conversation history scoped to this session
         history = supabase_service.get_conversation_history(
-            profile_id=session_id,
+            session_id=session_id,
             limit=50
         )
 
@@ -137,12 +146,14 @@ async def chat(request: ChatRequest):
 
         # Store user message and assistant response
         supabase_service.store_message(
-            profile_id=session_id,
+            profile_id=profile_id,
+            session_id=session_id,
             role="user",
             content=request.message
         )
         supabase_service.store_message(
-            profile_id=session_id,
+            profile_id=profile_id,
+            session_id=session_id,
             role="assistant",
             content=result["response"]
         )
@@ -162,10 +173,10 @@ async def chat(request: ChatRequest):
             if "sections_count" in tool
         )
 
-        # Log analytics
+        # Log analytics at profile level
         response_time_ms = int((time.time() - start_time) * 1000)
         supabase_service.log_analytics(
-            profile_id=session_id,
+            profile_id=profile_id,
             user_query=request.message,
             intent_detected=intent_detected,
             tools_used=result["tools_used"],
@@ -177,6 +188,7 @@ async def chat(request: ChatRequest):
         )
 
         return ChatResponse(
+            profile_id=profile_id,
             session_id=session_id,
             response=result["response"],
             intent=intent_detected,
@@ -189,7 +201,7 @@ async def chat(request: ChatRequest):
         # Log failed analytics
         try:
             supabase_service.log_analytics(
-                profile_id=session_id,
+                profile_id=profile_id,
                 user_query=request.message,
                 success=False,
                 error_message=str(e)
