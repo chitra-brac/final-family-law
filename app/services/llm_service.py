@@ -205,17 +205,20 @@ class LLMService:
                 parallel_tool_calls=True,  # Call both tools in parallel
             )
 
-            # Check if model wants to use tools
             message = response.choices[0].message
             total_tokens += response.usage.total_tokens
 
-            if message.tool_calls:
+            # Allow up to 2 rounds of tool calling (browse summaries → drill-down full text)
+            for round_num in range(2):
+                if not message.tool_calls:
+                    break
+
                 messages.append(message.model_dump())
 
                 for tool_call in message.tool_calls:
                     function_name = tool_call.function.name
                     function_args = json.loads(tool_call.function.arguments)
-                    logger.info("executing_tool", tool=function_name, args=function_args)
+                    logger.info("executing_tool", tool=function_name, args=function_args, round=round_num + 1)
                     tool_result = execute_tool(function_name, function_args)
                     tools_used.append({
                         "tool": function_name,
@@ -229,7 +232,40 @@ class LLMService:
                         "content": json.dumps(tool_result, ensure_ascii=False)
                     })
 
-                # Follow-up call WITHOUT tools — model must respond with text
+                # Next call WITH tools so model can do a second round if needed
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    tools=LEGAL_TOOLS,
+                    tool_choice="auto",
+                    reasoning_effort="medium",
+                    parallel_tool_calls=True,
+                )
+                message = response.choices[0].message
+                total_tokens += response.usage.total_tokens
+
+            # If the last response still has tool calls (after 2 rounds), execute and force text
+            if message.tool_calls:
+                messages.append(message.model_dump())
+
+                for tool_call in message.tool_calls:
+                    function_name = tool_call.function.name
+                    function_args = json.loads(tool_call.function.arguments)
+                    logger.info("executing_tool", tool=function_name, args=function_args, round="final")
+                    tool_result = execute_tool(function_name, function_args)
+                    tools_used.append({
+                        "tool": function_name,
+                        "args": function_args,
+                        "sections_count": tool_result.get("sections_count", 0)
+                    })
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": json.dumps(tool_result, ensure_ascii=False)
+                    })
+
+                # Final call WITHOUT tools — force text response
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
