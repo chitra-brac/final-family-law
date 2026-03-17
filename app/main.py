@@ -207,7 +207,7 @@ async def chat(request: ChatRequest):
                 error_message=str(e)
             )
         except Exception:
-            pass
+            logger.warning("Failed to log analytics for failed request", exc_info=True)
 
         raise HTTPException(
             status_code=500,
