@@ -103,7 +103,7 @@ async def create_new_session(request: NewSessionRequest = NewSessionRequest()):
     return NewSessionResponse(
         profile_id=profile_id,
         session_id=session_id,
-        greeting="আসসালামু আলাইকুম। আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?",
+        greeting="আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?",
     )
 
 

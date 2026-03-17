@@ -36,7 +36,7 @@ class NewSessionResponse(BaseModel):
 
     profile_id: str
     session_id: str
-    greeting: str = Field(default="আসসালামু আলাইকুম। আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?")
+    greeting: str = Field(default="আমি আপনার পারিবারিক আইন সহায়ক। আপনি কি ধরনের আইনি সমস্যার মুখোমুখি?")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
