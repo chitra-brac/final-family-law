@@ -23,22 +23,33 @@ GPT-5.1 decides which tools to call (often all three in parallel). All tools are
 
 ## Data
 
-| File | Records | Size | Description |
-|------|---------|------|-------------|
-| `family_laws_final.json` | 1,512 sections | 3.3 MB | Full text of all sections across 58 Bangladesh acts |
-| `intent_mappings.json` | 15 intents | 7 KB | Maps intents to mandatory legal sections + notes |
-| `procedural_knowledge.json` | 15 intent-specific + 8 general | 133 KB | Step-by-step procedures, definitions, punishments, timelines |
-| `act_summaries.json` | 58 acts | 38 KB | Act titles + summaries for search-stage act discovery |
+All files are loaded into memory at startup — every tool call is a dict lookup, under 10ms.
+
+| File | Records | Description |
+|------|---------|-------------|
+| `family_laws_final.json` | 1,512 sections / 58 acts | Full law text + semantic summary per section, indexed as `sections[act_id][section_number]` for O(1) lookup |
+| `intent_mappings.json` | 15 intents | Maps each intent to 2–4 hand-picked section references (31 total) — the curated fast path |
+| `procedural_knowledge.json` | 15 intent-specific + 8 general | Bengali guidance per intent (definitions, court orders, penalties, immediate actions) + cross-cutting how-to guides (file FIR, safety planning, legal aid, evidence collection, etc.) |
+| `act_summaries.json` | 58 acts | Short English summary per act — returned as a browse layer before drilling into sections |
 
 ## Tools
 
-| Tool | Source | Latency | Cost | Sections accessible |
-|------|--------|---------|------|-------------------|
-| `get_legal_knowledge` | intent_mappings.json → family_laws_final.json | <10ms | $0 | 31 (curated per intent) |
-| `get_procedural_guidance` | procedural_knowledge.json | <10ms | $0 | — (procedures, not sections) |
-| `search_legal_sections` | act_summaries.json + family_laws_final.json | <10ms | $0 | 1,512 (full corpus) |
+GPT-5.1 calls these as OpenAI function-calling tools. All three are in-memory JSON lookups with no external calls.
 
-The 15 intents cover 12 acts with 31 curated sections. The remaining 46 acts and 1,481 sections are accessible only through `search_legal_sections`.
+### `get_legal_knowledge(intent)`
+Takes one of 15 intent enum values. Looks up the curated section references for that intent in `intent_mappings.json`, then fetches the full law text for each from `family_laws_final.json`. Returns 2–4 sections of actual statute text. This is the fast path for known intents.
+
+### `get_procedural_guidance(intent, topics[])`
+Takes an intent plus an optional array of up to 3 general procedure topics (`file_fir`, `safety_planning`, `get_legal_aid`, etc.). Returns the intent-specific guidance block (definitions, court orders, exact penalties, immediate actions — all in Bengali) plus the requested general procedure guides. Almost always called alongside `get_legal_knowledge` in the same parallel round.
+
+### `search_legal_sections(act_ids[], query, section_numbers[])`
+The open-ended tool for anything outside the 15 intents. Uses a two-phase pattern:
+- **Browse** (no `section_numbers`): returns section titles + semantic summaries for all sections in the requested acts, capped at 200. Also returns each act's summary from `act_summaries.json`.
+- **Drill-down** (with `section_numbers`): returns full law text for the specified sections only.
+
+GPT reads the summaries in round 1, picks the relevant section numbers, then calls again in round 2 for full text. This avoids dumping the entire act into context. The full catalog of all 58 acts (organised by category: Violence, Muslim, Hindu, Christian, Children, Courts, Property, Maintenance, etc.) is embedded in the tool's description so GPT can select act IDs without an extra lookup.
+
+The 15 intents cover 31 curated sections across 12 acts. The remaining 46 acts and 1,481 sections are only reachable via `search_legal_sections`.
 
 ## Request flow
 
